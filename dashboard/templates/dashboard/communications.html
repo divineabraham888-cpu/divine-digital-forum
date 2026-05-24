@@ -1,0 +1,79 @@
+{% extends 'accounts/main_base.html' %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="display: flex; min-height: 600px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+    <!-- Worker List -->
+    <div style="width: 300px; background: #fff; border-right: 1px solid #eee; overflow-y: auto;">
+        <h3 style="padding: 15px; border-bottom: 1px solid #eee; margin: 0;">Workers</h3>
+        {% for worker in workers %}
+            <a href="{% url 'message_center_detail' worker.id %}" 
+               style="display: block; padding: 15px; border-bottom: 1px solid #f9f9f9; text-decoration: none; color: #333;">
+                {{ worker.username }}
+            </a>
+        {% empty %}
+            <p style="padding: 15px;">No workers found.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Chat Area -->
+    <div style="flex: 1; display: flex; flex-direction: column; background: #f4f7f5;">
+        {% if selected_worker %}
+            <div style="padding: 20px; background: white; border-bottom: 1px solid #ddd;">
+                <h3 style="margin: 0;">Chatting with {{ selected_worker.username }}</h3>
+            </div>
+            
+            <div id="chat-log" style="flex: 1; padding: 20px; overflow-y: auto;">
+                {% for msg in chat_messages %}
+                    <div style="margin-bottom: 15px; text-align: {% if msg.sender == request.user %}right{% else %}left{% endif %};">
+                        <div style="display: inline-block; padding: 10px 15px; border-radius: 10px; 
+                                   {% if msg.sender == request.user %}background: #D4AF37; color: #0A5C36;{% else %}background: white;{% endif %}">
+                            {{ msg.content }}
+                            <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.7;">{{ msg.timestamp|time:"H:i" }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <form id="chat-form" style="padding: 20px; background: white; border-top: 1px solid #eee;">
+                {% csrf_token %}
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="message-input" placeholder="Type a message..." required style="flex: 1; padding: 10px; border: 1px solid #ddd;">
+                    <button type="submit" style="padding: 10px 20px; background: #0A5C36; color: white; border: none; cursor: pointer;">Send</button>
+                </div>
+            </form>
+        {% else %}
+            <div style="padding: 40px; text-align: center; color: #666; display: flex; align-items: center; justify-content: center; height: 100%;">
+                <h3>Select a worker to start a conversation.</h3>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    {% if selected_worker %}
+    const roomName = "{{ selected_worker.id }}";
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const socketUrl = protocol + window.location.host + '/ws/chat/' + roomName + '/';
+    
+    console.log("DEBUG: Connecting to:", socketUrl); // Check the Console for this
+    
+    const chatSocket = new WebSocket(socketUrl);
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const chatLog = document.querySelector('#chat-log');
+        chatLog.innerHTML += '<div style="margin-bottom: 15px;">' + data.message + '</div>';
+        chatLog.scrollTop = chatLog.scrollHeight;
+    };
+
+    document.querySelector('#chat-form').onsubmit = function(e) {
+        e.preventDefault();
+        const messageInput = document.querySelector('#message-input');
+        chatSocket.send(JSON.stringify({
+            'message': messageInput.value
+        }));
+        messageInput.value = '';
+    };
+    {% endif %}
+</script>
+{% endblock %}

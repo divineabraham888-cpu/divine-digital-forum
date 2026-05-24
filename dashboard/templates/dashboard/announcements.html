@@ -1,0 +1,170 @@
+{% extends 'accounts/main_base.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-green: #0A5C36;
+        --secondary-green: #147a4a;
+        --gold: #D4AF37;
+        --light-gold: #f9f1d8;
+        --bg-light: #f4f7f5;
+        --text-dark: #333;
+    }
+    body { margin: 0; background-color: var(--bg-light); font-family: 'Segoe UI', sans-serif; }
+    .dashboard-wrapper { display: flex; min-height: 100vh; }
+    
+    .sidebar { width: 250px; background-color: var(--primary-green); display: flex; flex-direction: column; padding-top: 20px; }
+    .brand { text-align: center; padding: 0 15px 20px 15px; border-bottom: 2px solid var(--gold); margin-bottom: 20px; }
+    .brand h2 { color: var(--gold); font-size: 1.2rem; margin: 0; text-transform: uppercase; }
+    .menu-item { padding: 15px 20px; color: white; text-decoration: none; font-weight: 500; border-left: 4px solid transparent; transition: 0.3s; display: block; }
+    .menu-item:hover, .menu-item.active { background-color: var(--secondary-green); border-left: 4px solid var(--gold); color: var(--gold); }
+    
+    .main-content { flex: 1; padding: 30px; }
+    .grid-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+    .column { flex: 1; min-width: 300px; }
+    
+    .card { background: white; border-top: 4px solid var(--gold); padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .card h3 { color: var(--primary-green); margin-top: 0; border-bottom: 2px solid var(--light-gold); padding-bottom: 10px; }
+    
+    .alert-success { background-color: #d4edda; color: #155724; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb; }
+    
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-weight: bold; color: var(--primary-green); margin-bottom: 5px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+    .btn-gold { background-color: var(--gold); color: var(--primary-green); border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; font-size: 1rem; }
+    .btn-gold:hover { background-color: #c19b2e; }
+
+    .announcement-item { padding: 15px; margin-bottom: 15px; border-radius: 4px; border-left: 5px solid #ccc; background: #fdfdfd; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: white; margin-bottom: 10px; }
+    .badge.high { background-color: #dc3545; }
+    .badge.medium { background-color: var(--gold); color: var(--primary-green); }
+    .badge.low { background-color: var(--primary-green); }
+    
+    .timetable-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+    .timetable-item:last-child { border-bottom: none; }
+    .timetable-date { font-weight: bold; color: var(--gold); background: var(--primary-green); padding: 5px 10px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 80px; }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <div class="brand">
+            <h2>DIVINE DIGITAL FORUM 🛡️</h2>
+            <small style="color: #ccc;">Admin Control Room</small>
+        </div>
+        <a href="{% url 'admin_dashboard' %}" class="menu-item">📊 Dashboard Home</a>
+        <a href="{% url 'manage_workers' %}" class="menu-item">👥 Manage Workers & Passwords</a>
+        <a href="{% url 'manage_announcements' %}" class="menu-item active">📢 Announcements & Timetable</a>
+        <a href="#" class="menu-item">📞 1-on-1 Communications</a>
+        <a href="#" class="menu-item">💡 Suggestions Inbox</a>
+        <a href="#" class="menu-item">🤖 Support Center (AI)</a>
+    </div>
+
+    <div class="main-content">
+        <h2 style="color: var(--primary-green); margin-top: 0;">Announcements & Timetable</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="grid-container">
+            <!-- COLUMN 1: Broadcast & Timetable -->
+            <div class="column">
+                <div class="card" style="background-color: var(--light-gold);">
+                    <h3>Broadcast Announcement</h3>
+                    <form action="{% url 'add_announcement' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" name="title" placeholder="E.g., Server Maintenance" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority Level</label>
+                            <select name="priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Message</label>
+                            <textarea name="message" rows="4" placeholder="Type your announcement here..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn-gold">🚀 Send Broadcast</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Add Timetable Event</h3>
+                    <form action="{% url 'add_timetable_event' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label>Event Title</label>
+                            <input type="text" name="title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" name="description">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Date</label>
+                                <input type="date" name="event_date" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Time</label>
+                                <input type="time" name="event_time" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-gold">➕ Add Event</button>
+                    </form>
+
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+                    <h3>Upcoming Events</h3>
+                    {% for event in timetable_events %}
+                        <div class="timetable-item">
+                            <div>
+                                <strong>{{ event.title }}</strong><br>
+                                <small style="color: #666;">{{ event.description }}</small>
+                            </div>
+                            <div class="timetable-date">
+                                {{ event.event_date|date:"M d" }}<br>
+                                <small>{{ event.event_time|time:"H:i" }}</small>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p style="color: #666; font-style: italic;">No events scheduled.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- COLUMN 2: Announcements Feed -->
+            <div class="column">
+                <div class="card">
+                    <h3>Recent Announcements Feed</h3>
+                    {% for announcement in announcements %}
+                        <div class="announcement-item" 
+                            {% if announcement.priority == 'High' %} style="border-left-color: #dc3545;"
+                            {% elif announcement.priority == 'Medium' %} style="border-left-color: var(--gold);"
+                            {% else %} style="border-left-color: var(--primary-green);" {% endif %}>
+                            
+                            <span class="badge {{ announcement.priority|lower }}">
+                                {{ announcement.priority }} Priority
+                            </span>
+                            <h4 style="margin: 0 0 10px 0; color: #333;">{{ announcement.title }}</h4>
+                            <p style="margin: 0 0 10px 0; color: #555; line-height: 1.5;">{{ announcement.message }}</p>
+                            <small style="color: #888;">
+                                👤 Posted by {{ announcement.posted_by.username }} | 🕒 {{ announcement.date_posted|timesince }} ago
+                            </small>
+                        </div>
+                    {% empty %}
+                        <p style="color: #666; font-style: italic;">No announcements have been posted yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

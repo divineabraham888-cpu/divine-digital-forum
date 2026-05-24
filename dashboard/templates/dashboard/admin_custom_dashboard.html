@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ user.username }}!</h1>
+    <h3>Admin Dashboard</h3>
+
+    <p>Number of tasks: {{ total_tasks }}</p>
+    <p>Pending tasks: {{ pending_tasks }}</p>
+
+    <h2>Workers List</h2>
+    <ul>
+        {% for worker in all_workers %}
+            <li>{{ worker.username }} ({{ worker.email }})</li>
+        {% empty %}
+            <li>No workers found.</li>
+        {% endfor %}
+    </ul>
+
+    <h2>All Tasks</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Task Title</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in all_tasks %}
+            <tr>
+                <td>{{ task.title }}</td>
+                <td>{{ task.assigned_to.username }}</td>
+                <td>{{ task.status }}</td>
+                <td>
+                    <form action="{% url 'reassign_task' task.id %}" method="POST">
+                        {% csrf_token %}
+                        <select name="new_worker">
+                            {% for worker in all_workers %}
+                                <option value="{{ worker.id }}">{{ worker.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit">Reassign</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No tasks created yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+    
+    <h3>Assign New Task</h3>
+    <form method="POST" action="{% url 'create_task' %}">
+        {% csrf_token %}
+        <input type="text" name="title" placeholder="Task Title" required>
+        <textarea name="description" placeholder="Task Description"></textarea>
+        
+        <select name="assigned_to">
+            {% for worker in all_workers %}
+                <option value="{{ worker.id }}">{{ worker.username }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="submit">Assign Task</button>
+    </form>
+</body>
+</html>

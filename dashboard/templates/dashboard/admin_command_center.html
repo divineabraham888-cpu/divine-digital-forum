@@ -1,0 +1,78 @@
+from django.shortcuts import render
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+from .models import Task, ActivityLog
+
+@user_passes_test(lambda u: u.is_staff)
+def admin_command_center(request):
+    workers = User.objects.filter(is_staff=False)
+    recent_logs = ActivityLog.objects.all().order_by('-timestamp')[:10]
+    all_tasks = Task.objects.all().order_by('-created_at')
+    
+    # Identify tasks that are 'Pending' and were created more than 3 days ago
+    three_days_ago = timezone.now() - timedelta(days=3)
+    stalled_tasks = all_tasks.filter(status='Pending', created_at__lt=three_days_ago)
+
+    context = {
+        'workers': workers,
+        'recent_logs': recent_logs,
+        'all_tasks': all_tasks,
+        'stalled_tasks': stalled_tasks,
+        'total_tasks': all_tasks.count(),
+        'pending_tasks': all_tasks.filter(status='Pending').count(),
+    }
+    return render(request, 'dashboard/admin_command_center.html', context)
+    {% extends 'base.html' %} 
+
+{% block content %}
+    <h2>Command Center - Main Engine</h2>
+    
+    <!-- Alert System for Stalled Tasks -->
+    {% if stalled_tasks %}
+        <div class="card" style="border: 2px solid red; background-color: #ffe6e6; margin-bottom: 20px; padding: 15px;">
+            <h3 style="color: red;">⚠️ Bottleneck Alert</h3>
+            <p>The following tasks have been pending for over 3 days:</p>
+            <ul>
+                {% for task in stalled_tasks %}
+                    <li><strong>{{ task.title }}</strong> - Assigned to: {{ task.assigned_to.username }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="engine-grid">
+        <div class="card">
+            <h3>Recent Worker Activity</h3>
+            <ul>
+                {% for log in recent_logs %}
+                    <li>{{ log.user.username }}: {{ log.action }}</li>
+                {% empty %}
+                    <li>No activity yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Control Panel</h3>
+            <button onclick="window.location.href='#'">Start Video Conference</button>
+
+            <hr>
+            
+            <h4>Direct Message to Worker</h4>
+            <form method="POST" action="{% url 'send_message' %}">
+                {% csrf_token %}
+                <select name="worker_id" required>
+                    {% for worker in workers %}
+                        <option value="{{ worker.id }}">{{ worker.username }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <textarea name="content" placeholder="Type instructions here..." required></textarea>
+                <br>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,23 @@
+<div class="table-container">
+    <h3 style="color: var(--primary-green);">📬 Private Submission Portal</h3>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label>Title</label>
+            {{ form.title }}
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label>Category</label>
+            {{ form.submission_type }}
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label>Message/Details</label>
+            {{ form.content }}
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label>Upload File (Image/Doc/Video)</label>
+            {{ form.file }}
+        </div>
+        <button type="submit" class="btn-gold" style="width: 100%;">Submit to Management</button>
+    </form>
+</div>

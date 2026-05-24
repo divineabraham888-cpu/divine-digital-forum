@@ -1,0 +1,293 @@
+{% extends 'accounts/main_base.html' %}
+
+{% block content %}
+<style>
+    /* Green and Gold Theme Variables */
+    :root {
+        --primary-green: #0A5C36;
+        --secondary-green: #147a4a;
+        --gold: #D4AF37;
+        --light-gold: #f9f1d8;
+        --bg-light: #f4f7f5;
+        --text-dark: #333;
+    }
+
+    body {
+        margin: 0;
+        background-color: var(--bg-light);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Layout */
+    .dashboard-wrapper {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* Sidebar Menu */
+    .sidebar {
+        width: 250px;
+        background-color: var(--primary-green);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        padding-top: 20px;
+    }
+
+    .brand {
+        text-align: center;
+        padding: 0 15px 20px 15px;
+        border-bottom: 2px solid var(--gold);
+        margin-bottom: 20px;
+    }
+
+    .brand h2 {
+        color: var(--gold);
+        font-size: 1.2rem;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .menu-item {
+        padding: 15px 20px;
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        border-left: 4px solid transparent;
+        transition: 0.3s;
+    }
+
+    .menu-item:hover, .menu-item.active {
+        background-color: var(--secondary-green);
+        border-left: 4px solid var(--gold);
+        color: var(--gold);
+    }
+
+    /* Main Content Area */
+    .main-content {
+        flex: 1;
+        padding: 30px;
+    }
+
+    /* Cards & Tables */
+    .stats-card {
+        background: white;
+        border-top: 4px solid var(--gold);
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .table-container h3 {
+        color: var(--primary-green);
+        margin-top: 0;
+        border-bottom: 2px solid var(--light-gold);
+        padding-bottom: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    th {
+        background-color: var(--primary-green);
+        color: white;
+    }
+
+    /* Buttons */
+    .btn-gold {
+        background-color: var(--gold);
+        color: var(--primary-green);
+        border: none;
+        padding: 8px 15px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    .btn-gold:hover {
+        background-color: #c19b2e;
+    }
+</style>
+
+<div class="dashboard-wrapper">
+    <!-- SIDEBAR NAVIGATION -->
+    <div class="sidebar">
+        <div class="brand">
+            <h2>DIVINE DIGITAL FORUM 🛡️</h2>
+            <small style="color: #ccc;">Admin Control Room</small>
+        </div>
+        
+        <a href="{% url 'admin_dashboard' %}" class="menu-item active">📊 Dashboard Home</a>
+        <a href="{% url 'manage_workers' %}" class="menu-item">👥 Manage Workers & Passwords</a>
+        <a href="{% url 'manage_announcements' %}" class="menu-item">📢 Announcements & Timetable</a>
+        
+        <!-- THE FIXED LINK -->
+        <a href="{% url 'message_center' %}" class="menu-item">📞 1-on-1 Communications</a>
+        
+        <a href="#" class="menu-item">💡 Suggestions Inbox</a>
+        <a href="#" class="menu-item">🤖 Support Center (AI)</a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        
+        <div class="stats-card">
+            <h2 style="margin-top: 0; color: var(--primary-green);">System Overview</h2>
+            <strong>Total Tasks: {{ total_tasks }}</strong> | 
+            <span style="color: #d97706;">Pending: {{ pending_tasks }}</span> | 
+            <span style="color: var(--primary-green);">Completed: {{ completed_tasks }}</span>
+        </div>
+
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            
+            <!-- TASKS & WORKERS COLUMN -->
+            <div style="flex: 2; min-width: 300px;">
+                
+                <!-- ALL TASKS -->
+                <div class="table-container">
+                    <h3>Current Tasks</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Worker</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in all_tasks %}
+                            <tr>
+                                <td>{{ task.title }}</td>
+                                <td>{{ task.assigned_to.username }}</td>
+                                <td>{{ task.status }}</td>
+                                <td>
+                                    <form action="{% url 'reassign_task' task.id %}" method="POST" style="display:flex; gap:5px;">
+                                        {% csrf_token %}
+                                        <select name="new_worker" style="padding: 5px;">
+                                            {% for worker in all_workers %}
+                                                <option value="{{ worker.id }}" {% if worker == task.assigned_to %}selected{% endif %}>
+                                                    {{ worker.username }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn-gold">Reassign</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- WORKER PERFORMANCE -->
+                <div class="table-container">
+                    <h3>Worker Performance</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Pending</th>
+                                <th>Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for worker in all_workers %}
+                            <tr>
+                                <td><strong>{{ worker.username }}</strong></td>
+                                <td style="color: #d97706; font-weight: bold;">{{ worker.pending_count }}</td>
+                                <td style="color: var(--primary-green); font-weight: bold;">{{ worker.completed_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- QUICK ACTIONS COLUMN -->
+            <div style="flex: 1; min-width: 250px;">
+                <div class="table-container" style="background-color: var(--light-gold);">
+                    <h3>Create New Task</h3>
+                    <form method="POST" action="{% url 'create_task' %}">
+                        {% csrf_token %}
+                        <input type="text" name="title" placeholder="Task Title" required style="width:100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc;"><br>
+                        <select name="assigned_to" style="width:100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc;">
+                            {% for worker in all_workers %}
+                                <option value="{{ worker.id }}">{{ worker.username }}</option>
+                            {% endfor %}
+                        </select><br>
+                        <button type="submit" class="btn-gold" style="width: 100%; padding: 12px; font-size: 1rem;">
+                            Assign Task
+                        </button>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <h3>Recent Activity</h3>
+                    {% for log in recent_logs %}
+                        <div style="font-size: 0.85em; border-bottom: 1px solid #eee; padding: 8px 0;">
+                            <strong>{{ log.user.username }}</strong>: {{ log.action }}
+                        </div>
+                    {% empty %}
+                        <div style="font-size: 0.85em; padding: 8px 0;">No recent activity.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+<div class="table-container">
+    <h3>Admin: Worker Performance Scores</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Worker</th>
+                <th>Type</th>
+                <th>File/Content</th>
+                <th>Score</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in submissions %}
+            <tr>
+                <td>{{ sub.worker.username }}</td>
+                <td>{{ sub.get_submission_type_display }}</td>
+                <td>
+                    {% if sub.file %}<a href="{{ sub.file.url }}">View File</a>{% else %}{{ sub.content|truncatechars:20 }}{% endif %}
+                </td>
+                <td>
+                    <form action="{% url 'update_score' sub.id %}" method="POST">
+                        {% csrf_token %}
+                        <input type="number" name="score" value="{{ sub.score }}" style="width: 50px;">
+                </td>
+                <td>
+                        <button type="submit" class="btn-gold">Update</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

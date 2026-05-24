@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <p>You are logged in as: <strong>{{ user.username }}</strong></p>
+    <h1>Welcome, {{ user.username }}</h1>
+    
+    {% if user.is_staff %}
+        <a href="{% url 'worker_dashboard' %}">Go to Admin View</a>
+    {% endif %}
+
+    <h2>My Assigned Tasks</h2>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.title }}</td>
+                <td>{{ task.description }}</td>
+                <td>{{ task.status }}</td>
+                <td>
+                    <!-- Form for completing the task -->
+                    <form action="{% url 'complete_task' task.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit">Mark Completed</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No tasks assigned to you yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
