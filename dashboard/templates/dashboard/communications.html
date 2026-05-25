@@ -1,32 +1,67 @@
-{% extends 'accounts/main_base.html' %}
+{% extends 'main_base.html' %}
 
 {% block content %}
-<div class="dashboard-wrapper" style="display: flex; min-height: 600px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-    <!-- Worker List -->
-    <div style="width: 300px; background: #fff; border-right: 1px solid #eee; overflow-y: auto;">
-        <h3 style="padding: 15px; border-bottom: 1px solid #eee; margin: 0;">Workers</h3>
-        {% for worker in workers %}
-            <a href="{% url 'message_center_detail' worker.id %}" 
-               style="display: block; padding: 15px; border-bottom: 1px solid #f9f9f9; text-decoration: none; color: #333;">
-                {{ worker.username }}
+<!-- IMPORT JITSI API -->
+<script src="https://meet.jit.si/external_api.js"></script>
+
+<div class="dashboard-wrapper" style="display: flex; min-height: 700px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+    
+    <!-- Sidebar: Workers & Groups -->
+    <div style="width: 300px; background: #fff; border-right: 1px solid #eee; display: flex; flex-direction: column;">
+        
+        <!-- Group Communications -->
+        <div style="border-bottom: 2px solid #0A5C36;">
+            <h3 style="padding: 15px; background: #f4f7f5; margin: 0; font-size: 1.1rem;">Broadcast & Groups</h3>
+            <a href="#" onclick="startGroupCall('All_Workers_Broadcast')" style="display: block; padding: 15px; border-bottom: 1px solid #f9f9f9; text-decoration: none; color: #0A5C36; font-weight: bold; cursor: pointer;">
+                📢 Admin Broadcast (All)
             </a>
-        {% empty %}
-            <p style="padding: 15px;">No workers found.</p>
-        {% endfor %}
+        </div>
+
+        <!-- 1-on-1 Workers List -->
+        <h3 style="padding: 15px; background: #f4f7f5; margin: 0; font-size: 1.1rem; border-bottom: 1px solid #eee;">Direct Messages</h3>
+        <div style="overflow-y: auto; flex: 1;">
+            {% for worker in workers %}
+                <a href="{% url 'message_center_with_worker' worker.id %}" 
+                   style="display: block; padding: 15px; border-bottom: 1px solid #f9f9f9; text-decoration: none; color: #333; {% if selected_worker.id == worker.id %}background: #eef5f0; border-left: 4px solid #0A5C36;{% endif %}">
+                    {{ worker.username }}
+                </a>
+            {% empty %}
+                <p style="padding: 15px;">No workers found.</p>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Chat Area -->
+    <!-- Main Communication Area -->
     <div style="flex: 1; display: flex; flex-direction: column; background: #f4f7f5;">
         {% if selected_worker %}
-            <div style="padding: 20px; background: white; border-bottom: 1px solid #ddd;">
+            
+            <!-- Header & Call Controls -->
+            <div style="padding: 15px 20px; background: white; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0;">Chatting with {{ selected_worker.username }}</h3>
+                
+                <!-- Call Buttons -->
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-audio" style="padding: 8px 15px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        📞 Voice Call
+                    </button>
+                    <button id="btn-video" style="padding: 8px 15px; background: #0A5C36; color: white; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        📹 Video Call
+                    </button>
+                    <!-- Screen sharing is built into the Jitsi interface, so we just launch video -->
+                </div>
+            </div>
+
+            <!-- Video Call Container (Hidden by default) -->
+            <div id="video-wrapper" style="display: none; width: 100%; height: 500px; background: #222;">
+                <!-- Jitsi injects the video player here -->
             </div>
             
+            <!-- Text Chat Area -->
             <div id="chat-log" style="flex: 1; padding: 20px; overflow-y: auto;">
                 {% for msg in chat_messages %}
                     <div style="margin-bottom: 15px; text-align: {% if msg.sender == request.user %}right{% else %}left{% endif %};">
                         <div style="display: inline-block; padding: 10px 15px; border-radius: 10px; 
-                                   {% if msg.sender == request.user %}background: #D4AF37; color: #0A5C36;{% else %}background: white;{% endif %}">
+                                   {% if msg.sender == request.user %}background: #D4AF37; color: #0A5C36;{% else %}background: white; border: 1px solid #eee;{% endif %}">
                             {{ msg.content }}
                             <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.7;">{{ msg.timestamp|time:"H:i" }}</div>
                         </div>
@@ -34,44 +69,123 @@
                 {% endfor %}
             </div>
 
+            <!-- Message Input -->
             <form id="chat-form" style="padding: 20px; background: white; border-top: 1px solid #eee;">
                 {% csrf_token %}
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="message-input" placeholder="Type a message..." required style="flex: 1; padding: 10px; border: 1px solid #ddd;">
-                    <button type="submit" style="padding: 10px 20px; background: #0A5C36; color: white; border: none; cursor: pointer;">Send</button>
+                    <input type="text" id="message-input" placeholder="Type a message..." required style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+                    <button type="submit" style="padding: 12px 25px; background: #0A5C36; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Send</button>
                 </div>
             </form>
+
         {% else %}
-            <div style="padding: 40px; text-align: center; color: #666; display: flex; align-items: center; justify-content: center; height: 100%;">
-                <h3>Select a worker to start a conversation.</h3>
+            <!-- This shows if no worker is selected -->
+            <div style="padding: 40px; text-align: center; color: #666; display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
+                <h2 style="color: #0A5C36;">Communication Center</h2>
+                <p>Select a worker from the sidebar to start a chat, video call, or screen share.</p>
+                <div id="video-wrapper" style="display: none; width: 100%; height: 500px; background: #222; margin-top: 20px; border-radius: 8px;"></div>
             </div>
         {% endif %}
     </div>
 </div>
 
 <script>
+    // --- 1. JITSI VIDEO / AUDIO LOGIC ---
+    let jitsiAPI = null;
+    const currentUsername = "{{ request.user.username }}";
+
+    function startJitsiCall(roomID, startWithVideoMuted) {
+        const videoWrapper = document.getElementById('video-wrapper');
+        videoWrapper.style.display = 'block';
+        videoWrapper.innerHTML = ''; // Clear previous calls
+        
+        // Hide chat log temporarily while on a call to save screen space
+        const chatLog = document.getElementById('chat-log');
+        if(chatLog) chatLog.style.height = '150px'; 
+
+        const domain = 'meet.jit.si';
+        // Create a unique, private room name for your app
+        const uniqueRoomName = "DivineForum_SecureRoom_" + roomID;
+
+        const options = {
+            roomName: uniqueRoomName,
+            width: '100%',
+            height: '100%',
+            parentNode: videoWrapper,
+            userInfo: {
+                displayName: currentUsername
+            },
+            configOverwrite: {
+                startWithVideoMuted: startWithVideoMuted,
+                prejoinPageEnabled: false // Skip the waiting room, join instantly
+            }
+        };
+        
+        jitsiAPI = new JitsiMeetExternalAPI(domain, options);
+        
+        // Listen for when someone hangs up
+        jitsiAPI.addEventListener('videoConferenceLeft', () => {
+            videoWrapper.style.display = 'none';
+            videoWrapper.innerHTML = '';
+            if(chatLog) chatLog.style.height = 'auto'; // Restore chat height
+        });
+    }
+
+    // Function for the Admin to launch a broadcast room
+    function startGroupCall(groupName) {
+        startJitsiCall(groupName, false);
+    }
+
     {% if selected_worker %}
     const roomName = "{{ selected_worker.id }}";
+
+    // Attach click events to the 1-on-1 buttons
+    document.getElementById('btn-video').addEventListener('click', () => {
+        startJitsiCall("Worker_" + roomName, false); // Video ON
+    });
+
+    document.getElementById('btn-audio').addEventListener('click', () => {
+        startJitsiCall("Worker_" + roomName, true); // Video MUTED (Audio only)
+    });
+
+    // --- 2. TEXT CHAT (WEBSOCKETS) ---
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const socketUrl = protocol + window.location.host + '/ws/chat/' + roomName + '/';
-    
-    console.log("DEBUG: Connecting to:", socketUrl); // Check the Console for this
     
     const chatSocket = new WebSocket(socketUrl);
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         const chatLog = document.querySelector('#chat-log');
-        chatLog.innerHTML += '<div style="margin-bottom: 15px;">' + data.message + '</div>';
-        chatLog.scrollTop = chatLog.scrollHeight;
+        
+        if (data.type === 'chat_message') {
+            chatLog.innerHTML += `
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <div style="display: inline-block; padding: 10px 15px; border-radius: 10px; background: white; border: 1px solid #eee;">
+                        ${data.message}
+                    </div>
+                </div>`;
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
     };
 
     document.querySelector('#chat-form').onsubmit = function(e) {
         e.preventDefault();
         const messageInput = document.querySelector('#message-input');
         chatSocket.send(JSON.stringify({
+            'type': 'chat_message',
             'message': messageInput.value
         }));
+        
+        // Optimistically add to UI for the sender
+        const chatLog = document.querySelector('#chat-log');
+        chatLog.innerHTML += `
+            <div style="margin-bottom: 15px; text-align: right;">
+                <div style="display: inline-block; padding: 10px 15px; border-radius: 10px; background: #D4AF37; color: #0A5C36;">
+                    ${messageInput.value}
+                </div>
+            </div>`;
+        chatLog.scrollTop = chatLog.scrollHeight;
         messageInput.value = '';
     };
     {% endif %}

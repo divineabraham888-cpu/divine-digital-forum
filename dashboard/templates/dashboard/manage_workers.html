@@ -1,103 +1,71 @@
-{% extends 'accounts/main_base.html' %}
+{% extends 'main_base.html' %}
 
 {% block content %}
-<style>
-    /* Inherit the Green and Gold Theme */
-    :root {
-        --primary-green: #0A5C36;
-        --secondary-green: #147a4a;
-        --gold: #D4AF37;
-        --light-gold: #f9f1d8;
-        --bg-light: #f4f7f5;
-    }
-    body { margin: 0; background-color: var(--bg-light); font-family: 'Segoe UI', sans-serif; }
-    .dashboard-wrapper { display: flex; min-height: 100vh; }
-    
-    /* Sidebar Styles */
-    .sidebar { width: 250px; background-color: var(--primary-green); display: flex; flex-direction: column; padding-top: 20px; }
-    .brand { text-align: center; padding: 0 15px 20px 15px; border-bottom: 2px solid var(--gold); margin-bottom: 20px; }
-    .brand h2 { color: var(--gold); font-size: 1.2rem; margin: 0; text-transform: uppercase; }
-    .menu-item { padding: 15px 20px; color: white; text-decoration: none; font-weight: 500; border-left: 4px solid transparent; transition: 0.3s; display: block; }
-    .menu-item:hover, .menu-item.active { background-color: var(--secondary-green); border-left: 4px solid var(--gold); color: var(--gold); }
-    
-    /* Main Content */
-    .main-content { flex: 1; padding: 30px; }
-    .card { background: white; border-top: 4px solid var(--gold); padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    
-    /* Alerts */
-    .alert-success { background-color: #d4edda; color: #155724; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb; }
-    
-    /* Edit Forms */
-    .edit-panel { background: var(--light-gold); padding: 15px; margin-top: 10px; border-radius: 4px; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-weight: bold; color: var(--primary-green); margin-bottom: 5px; }
-    .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    .btn-gold { background-color: var(--gold); color: var(--primary-green); border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; }
-    .btn-gold:hover { background-color: #c19b2e; }
-    
-    summary { cursor: pointer; font-weight: bold; color: var(--primary-green); padding: 10px; background: #eee; border-radius: 4px; margin-bottom: 5px; }
-    summary:hover { background: #e0e0e0; }
-</style>
 
-<div class="dashboard-wrapper">
-    <!-- SIDEBAR NAVIGATION -->
-    <div class="sidebar">
-        <div class="brand">
-            <h2>DIVINE DIGITAL FORUM 🛡️</h2>
-            <small style="color: #ccc;">Admin Control Room</small>
-        </div>
-        
-        <a href="{% url 'admin_dashboard' %}" class="menu-item">📊 Dashboard Home</a>
-        <a href="{% url 'manage_workers' %}" class="menu-item active">👥 Manage Workers & Passwords</a>
-        
-        <!-- The link is now correctly placed here -->
-        <a href="{% url 'manage_announcements' %}" class="menu-item">📢 Announcements & Timetable</a>
-        
-        <a href="#" class="menu-item">📞 1-on-1 Communications</a>
-        <a href="#" class="menu-item">💡 Suggestions Inbox</a>
-        <a href="#" class="menu-item">🤖 Support Center (AI)</a>
-    </div>
+<div style="padding: 30px; font-family: Arial;">
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-        <h2 style="color: var(--primary-green); margin-top: 0;">Worker Management Hub</h2>
-        
-        <!-- Display Success Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert-success">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+    <h1>Manage Workers</h1>
 
-        <div class="card">
-            <p>Click on a worker to edit their details or reset their password. Leave the password field blank if you do not want to change it.</p>
-            
+    <br>
+
+    <a href="{% url 'dashboard:admin_dashboard' %}">
+        ← Back to Admin Dashboard
+    </a>
+
+    <hr>
+
+    <table border="1" cellpadding="10" cellspacing="0">
+
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
             {% for worker in workers %}
-            <details style="margin-bottom: 10px;">
-                <summary>👤 {{ worker.username }} ({{ worker.email|default:"No email provided" }})</summary>
-                
-                <div class="edit-panel">
-                    <form action="{% url 'edit_worker' worker.id %}" method="POST">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" name="username" value="{{ worker.username }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" name="email" value="{{ worker.email }}">
-                        </div>
-                        <div class="form-group">
-                            <label>New Password (leave blank to keep current password)</label>
-                            <input type="password" name="password" placeholder="Enter new password...">
-                        </div>
-                        <button type="submit" class="btn-gold">💾 Save Changes</button>
-                    </form>
-                </div>
-            </details>
+
+            <tr>
+
+                <td>{{ worker.username }}</td>
+
+                <td>{{ worker.email }}</td>
+
+                <td>
+
+                    <a href="{% url 'dashboard:edit_worker' worker.id %}">
+                        Edit
+                    </a>
+
+                    |
+
+                    <a href="{% url 'dashboard:delete_worker' worker.id %}">
+                        Delete
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td colspan="3">
+                    No workers found.
+                </td>
+
+            </tr>
+
             {% endfor %}
-            
-        </div>
-    </div>
+
+        </tbody>
+
+    </table>
+
 </div>
+
 {% endblock %}

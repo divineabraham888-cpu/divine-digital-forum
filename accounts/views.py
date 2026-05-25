@@ -1,14 +1,21 @@
-from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
 
-class WorkerLoginView(LoginView):
-    template_name = 'accounts/login.html'
-    redirect_authenticated_user = True
-    
-    def get_success_url(self):
-        # If the user has 'is_staff' checked in the Admin panel, they go to Admin
-        if self.request.user.is_staff:
-            return reverse_lazy('admin_dashboard')
-        # Otherwise, they go to the Worker dashboard
-        return reverse_lazy('worker_dashboard')
-    
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return redirect("dashboard:admin_dashboard")  # or your correct url name
+
+        return render(request, "accounts/login.html", {
+            "error": "Invalid credentials"
+        })
+
+    return render(request, "accounts/login.html")

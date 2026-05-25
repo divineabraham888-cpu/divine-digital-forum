@@ -1,17 +1,25 @@
 from django import forms
-from .models import WorkerSubmission, Task
+from .models import Submission, Task
 
 class SubmissionForm(forms.ModelForm):
     class Meta:
-        model = WorkerSubmission
-        fields = ['title', 'submission_type', 'content', 'file']
+        model = Submission
+        # These are the only fields the user should fill out
+        fields = ['file_upload', 'worker_notes'] 
+        
+        # Optional: Add widgets for custom styling
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'file': forms.FileInput(attrs={'class': 'form-control'}),
+            'worker_notes': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Enter your notes here...'}),
         }
 
 class TaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['title', 'description', 'assigned_to'] # Ensure these match models.py
+        fields = ['title', 'description', 'assigned_to']
+        from django import forms
+from .models import Suggestion
+
+class SuggestionForm(forms.ModelForm):
+    class Meta:
+        model = Suggestion
+        fields = ['subject', 'content']

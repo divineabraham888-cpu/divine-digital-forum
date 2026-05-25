@@ -1,0 +1,37 @@
+{% extends 'main_base.html' %}
+
+{% block content %}
+
+<div style="padding:30px; font-family:Arial;">
+
+    <h1>Submissions Dashboard</h1>
+
+    <br>
+
+    <a href="{% url 'dashboard:admin_dashboard' %}">
+        ← Back to Admin Dashboard
+    </a>
+
+    <hr>
+
+    {% for submission in submissions %}
+
+        <div style="padding:15px; border:1px solid #ccc; margin-bottom:15px;">
+
+            <h3>{{ submission.title }}</h3>
+
+            <p>
+                {{ submission.description }}
+            </p>
+
+        </div>
+
+    {% empty %}
+
+        <p>No submissions available.</p>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}
