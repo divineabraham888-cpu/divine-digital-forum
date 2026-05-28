@@ -20,10 +20,11 @@ User = get_user_model()
 FORUM_BRANDING = "Divine Digital Forum"
 
 # ==========================================
-# 1. AUTHENTICATION
+# 1. AUTHENTICATION SYSTEM
 # ==========================================
 
 def auth_view(request):
+    """Handles unified user registration and authentication logic."""
     user_form = UserRegistrationForm()
     profile_form = ProfileForm()
     login_form = AuthenticationForm()
@@ -61,11 +62,10 @@ def auth_view(request):
 
 @login_required
 def admin_dashboard(request):
-    # Security check
+    """Master panel tracking system actions, broadcasts, and active operations."""
     if not request.user.is_superuser: 
         return redirect('dashboard:worker_dashboard')
     
-    # Handle forms (Broadcasts deployment/deletion)
     if request.method == 'POST':
         if 'broadcast_submit' in request.POST:
             SystemBroadcast.objects.create(
@@ -81,12 +81,9 @@ def admin_dashboard(request):
             messages.success(request, "Broadcast removed.")
             return redirect('dashboard:admin_dashboard')
 
-# Inside the admin_dashboard view in dashboard/views.py
     context = {
         'workers': User.objects.exclude(is_superuser=True).prefetch_related('worker_profile'),
         'broadcasts': SystemBroadcast.objects.all().order_by('-created_at'),
-        
-        # FIX: Changed '-last_active' to '-last_seen'
         'worker_activities': WorkerActivity.objects.all().order_by('-last_seen')[:10] 
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
@@ -94,7 +91,7 @@ def admin_dashboard(request):
 
 @login_required
 def worker_dashboard(request):
-    """The master dashboard view for workers."""
+    """The terminal dashboard workspace view for workers."""
     if request.user.is_superuser: 
         return redirect('dashboard:admin_dashboard')
     
@@ -121,6 +118,7 @@ def worker_dashboard(request):
 
 @login_required
 def manage_workers(request):
+    """Directory panel for administrative overview of existing workers."""
     if not request.user.is_superuser: 
         return redirect('dashboard:worker_dashboard')
     
@@ -133,6 +131,7 @@ def manage_workers(request):
 
 @login_required
 def manage_worker_action(request, user_id, action):
+    """Executes state parameters adjustments (Suspend, Block, Passwords resets)."""
     if not request.user.is_superuser: 
         return redirect('dashboard:worker_dashboard')
         
@@ -162,6 +161,7 @@ def manage_worker_action(request, user_id, action):
 
 @login_required
 def edit_worker_profile(request, user_id):
+    """Allows administrators or individual users to edit custom configurations."""
     if not request.user.is_superuser and request.user.id != user_id:
         return redirect('dashboard:worker_dashboard')
         
@@ -184,6 +184,7 @@ def edit_worker_profile(request, user_id):
 
 @login_required
 def create_task(request):
+    """Enables administrators to assign discrete execution pieces to active accounts."""
     if not request.user.is_superuser: 
         return redirect('dashboard:worker_dashboard')
         
@@ -200,6 +201,7 @@ def create_task(request):
 
 @login_required
 def task_list(request):
+    """Returns task structural rows allocated to the requesting user profile."""
     return render(request, 'dashboard/task_list.html', {
         'tasks': Task.objects.filter(assigned_to=request.user).order_by('-created_at'),
         'forum_name': FORUM_BRANDING
@@ -208,6 +210,7 @@ def task_list(request):
 
 @login_required
 def submit_task(request, task_id):
+    """Pushes a completion record and content up for administrator evaluation reviews."""
     task = get_object_or_404(Task, id=task_id)
     if request.method == 'POST':
         content = request.POST.get('content')
@@ -232,6 +235,7 @@ def submit_task(request, task_id):
 
 @login_required
 def submissions_dashboard(request):
+    """Central structural auditing center for submitted items evaluation metrics."""
     if not request.user.is_superuser:
         return redirect('dashboard:worker_dashboard')
         
@@ -246,55 +250,100 @@ def submissions_dashboard(request):
 
 
 # ==========================================
-# 5. COMMUNICATIONS & FEEDBACK BUFFER
+# 5. CONSOLIDATED MESSAGING & LIVE WORKSPACE (SPA)
 # ==========================================
 
 @login_required
 def message_center(request):
+    """
+    Core interface presenting available contact maps. Defaults natively 
+    to the Shared Global Network Room mapping all active units.
+    """
     available_contacts = User.objects.exclude(id=request.user.id)
+    
+    # Fetch existing global communications records (receiver is null)
+    global_messages = ChatMessage.objects.filter(receiver__isnull=True).order_by('timestamp')
+    
     return render(request, 'dashboard/message_center.html', {
         'contacts': available_contacts,
-        'messages': ChatMessage.objects.all().order_by('-timestamp'),
-        'forum_name': FORUM_BRANDING
+        'messages': global_messages,       # Injected history context
+        'forum_name': FORUM_BRANDING,
+        'target_worker': None,            # Signifies Global Comms Room active
+        'room_name': "sync_global_channel" 
     })
 
 
 @login_required
 def message_center_with_worker(request, worker_id):
+    """
+    Unified Single Page View tracking active text streams while serving dynamic 
+    room hashes for instant P2P audio/video/canvas integrations.
+    """
     target_worker = get_object_or_404(User, id=worker_id)
+    available_contacts = User.objects.exclude(id=request.user.id)
+    
     chat_messages = ChatMessage.objects.filter(
         (Q(sender=request.user) & Q(receiver=target_worker)) |
         (Q(sender=target_worker) & Q(receiver=request.user))
     ).order_by('timestamp')
+    
+    sorted_ids = sorted([request.user.id, target_worker.id])
+    computed_room_name = f"sync_{sorted_ids[0]}_{sorted_ids[1]}"
+    
     return render(request, 'dashboard/message_center.html', {
-        'target_worker': target_worker, 'messages': chat_messages, 'forum_name': FORUM_BRANDING
+        'contacts': available_contacts,
+        'target_worker': target_worker, 
+        'messages': chat_messages, 
+        'forum_name': FORUM_BRANDING,
+        'room_name': computed_room_name
     })
 
 
 @login_required
 def send_message(request, user_id):
+    """Async engine pipeline receiving message elements payloads via JSON requests."""
     if request.method == 'POST':
-        ChatMessage.objects.create(
-            sender=request.user, 
-            receiver=get_object_or_404(User, id=user_id), 
-            content=request.POST.get('content')
-        )
+        content_text = request.POST.get('content')
+        
+        if int(user_id) == 0:
+            ChatMessage.objects.create(
+                sender=request.user,
+                receiver=None,  
+                content=content_text
+            )
+        else:
+            ChatMessage.objects.create(
+                sender=request.user, 
+                receiver=get_object_or_404(User, id=user_id), 
+                content=content_text
+            )
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)
 
 
 @login_required
 def fetch_messages(request, user_id):
-    target_user = get_object_or_404(User, id=user_id)
-    messages_data = ChatMessage.objects.filter(
-        (Q(sender=request.user) & Q(receiver=target_user)) |
-        (Q(sender=target_user) & Q(receiver=request.user))
-    ).order_by('timestamp').values('sender__username', 'content', 'timestamp')
+    """Poll endpoint fetching update packages during direct client chat conversations."""
+    if int(user_id) == 0:
+        messages_data = ChatMessage.objects.filter(
+            receiver__isnull=True
+        ).order_by('timestamp').values('sender__username', 'content', 'timestamp')
+    else:
+        target_user = get_object_or_404(User, id=user_id)
+        messages_data = ChatMessage.objects.filter(
+            (Q(sender=request.user) & Q(receiver=target_user)) |
+            (Q(sender=target_user) & Q(receiver=request.user))
+        ).order_by('timestamp').values('sender__username', 'content', 'timestamp')
+        
     return JsonResponse(list(messages_data), safe=False)
 
+# ==========================================
+# 6. ANNOUNCEMENTS & DISCRETE BUFFER FEEDBACK
+# ==========================================
 
 @login_required
 def manage_announcements(request):
+    """Allows administrators to send global announcements out onto system hubs."""
     if request.method == 'POST':
         SystemBroadcast.objects.create(
             title=request.POST.get('title'),
@@ -312,6 +361,7 @@ def manage_announcements(request):
 
 @login_required
 def suggestion_box(request):
+    """Anonymous/Private pipeline collection terminal for user base suggestions feedback."""
     if request.method == 'POST':
         content = request.POST.get('content')
         title = request.POST.get('title', 'Feedback Record')
@@ -328,7 +378,7 @@ def suggestion_box(request):
 
 
 # ==========================================
-# 6. STRUCTURAL INTERFACE VIEWS & APIS
+# 7. METRICS & STRUCTURAL UTILITIES
 # ==========================================
 
 @login_required
@@ -346,20 +396,28 @@ def leaderboard_view(request):
     return render(request, 'dashboard/leaderboard.html', {'forum_name': FORUM_BRANDING})
 
 
-@login_required
-def live_communications(request, room_name): 
-    return render(request, 'dashboard/live_communications.html', {'room_name': room_name})
-
-
 @login_required 
 def check_efficiency_api(request):
+    """API endpoint providing async system metric verification updates."""
     metrics, _ = PerformanceMetric.objects.get_or_create(worker=request.user)
     return JsonResponse({'score': metrics.score})
-# views.py
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-
 @login_required
-def live_communication_view(request):
-    # You can pass additional context here if needed, like the selected worker
-    return render(request, 'live_communication.html')
+def fetch_messages(request, user_id):
+    # If Global (0), filter where receiver is None
+    if int(user_id) == 0:
+        messages = ChatMessage.objects.filter(receiver__isnull=True).order_by('timestamp')
+    else:
+        target_user = get_object_or_404(User, id=user_id)
+        messages = ChatMessage.objects.filter(
+            (Q(sender=request.user) & Q(receiver=target_user)) |
+            (Q(sender=target_user) & Q(receiver=request.user))
+        ).order_by('timestamp')
+
+    # Force a list of dicts with clear mapping
+    data = [{
+        'sender__username': m.sender.username,
+        'content': m.content,
+        'timestamp': m.timestamp.isoformat()
+    } for m in messages]
+    
+    return JsonResponse(data, safe=False)

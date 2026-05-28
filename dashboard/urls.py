@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+# This namespace ensures {% url 'dashboard:auth' %} resolves perfectly across your app
 app_name = 'dashboard'
 
 urlpatterns = [
@@ -10,6 +11,7 @@ urlpatterns = [
     # --- Dashboards ---
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('worker-dashboard/', views.worker_dashboard, name='worker_dashboard'),
+    path('submissions-dashboard/', views.submissions_dashboard, name='submissions_dashboard'),
     
     # --- Worker Management ---
     path('manage-workers/', views.manage_workers, name='manage_workers'),
@@ -22,27 +24,20 @@ urlpatterns = [
     path('submit-task/<int:task_id>/', views.submit_task, name='submit_task'),
     
     # --- Performance & Metrics ---
-    # Added this line to fix the NoReverseMatch error!
     path('check-efficiency/', views.check_efficiency_api, name='check_efficiency'),
     
-    # --- Communications & Suggestions ---
+    # --- Communications, Messaging & Feedback ---
     path('suggestion-box/', views.suggestion_box, name='suggestion_box'),
+    path('manage-announcements/', views.manage_announcements, name='manage_announcements'),
     path('message-center/', views.message_center, name='message_center'),
     path('message-center/<int:worker_id>/', views.message_center_with_worker, name='message_center_with_worker'),
     
-    # --- API Endpoints ---
+    # --- Async API Endpoints ---
     path('api/messages/fetch/<int:user_id>/', views.fetch_messages, name='fetch_messages'),
     path('api/messages/send/<int:user_id>/', views.send_message, name='send_message'),
-    
-    # --- Live & Extras ---
-    path('live-communications/<str:room_name>/', views.live_communications, name='live_communications'),
-    path('manage-announcements/', views.manage_announcements, name='manage_announcements'),
-]
-# urls.py
-from django.urls import path
-from . import views
 
-urlpatterns = [
-    # ... your other urls ...
-    path('dashboard/live-room/', views.live_communication_view, name='live_room'),
+    # --- Structural Interface Views ---
+    path('profile/', views.profile_view, name='profile_view'),
+    path('settings/', views.settings_view, name='settings_view'),
+    path('leaderboard/', views.leaderboard_view, name='leaderboard_view'),
 ]

@@ -12,194 +12,214 @@
             --metallic-gold: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
             --solid-gold: #d4af37;
         }
-        body {
-            background-color: var(--cyber-emerald-dark);
-            color: #e2e8f0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        body { background-color: var(--cyber-emerald-dark); color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-family: system-ui, sans-serif; }
         .gold-border { border-color: var(--solid-gold); }
-        .bg-panel { background: rgba(6, 78, 59, 0.45); backdrop-filter: blur(8px); }
-        .message-bubble.me {
-            background: var(--metallic-gold);
-            color: #022c22;
-            border-bottom-right-radius: 2px;
-        }
-        .message-bubble.them {
-            background: #0f766e;
-            color: white;
-            border-bottom-left-radius: 2px;
-        }
-        /* Hide scrollbar for clean UI */
+        .bg-panel { background: rgba(6, 78, 59, 0.45); backdrop-filter: blur(12px); }
+        .message-bubble.me { background: var(--metallic-gold); color: #022c22; border-bottom-right-radius: 2px; font-weight: 500; }
+        .message-bubble.them { background: #0f766e; color: white; border-bottom-left-radius: 2px; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--solid-gold); border-radius: 10px; }
+        #whiteboard { cursor: crosshair; touch-action: none; background: #000; border: 2px solid #d4af37; }
     </style>
 </head>
 <body>
 
-    <header class="p-4 border-b-2 gold-border flex justify-between items-center" style="background: var(--cyber-emerald-mid);">
-        <div class="text-xl font-bold uppercase tracking-widest text-amber-400">
-            <i class="fa-solid fa-network-wired mr-2"></i> {{ forum_name }} Comms
+    <header class="p-4 border-b-2 gold-border flex justify-between items-center z-20 shadow-lg" style="background: var(--cyber-emerald-mid);">
+        <div class="text-xl font-bold uppercase tracking-widest text-amber-400 flex items-center">
+            <i class="fa-solid fa-network-wired mr-3 text-2xl animate-pulse"></i> 
+            <span>{{ forum_name }} Comms Center</span>
         </div>
-        <a href="{% if user.is_superuser %}{% url 'dashboard:admin_dashboard' %}{% else %}{% url 'dashboard:worker_dashboard' %}{% endif %}" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold transition">
-            <i class="fa-solid fa-arrow-left mr-2"></i> Return to Dashboard
-        </a>
+        
+        <div id="connection-status" class="hidden px-3 py-1 bg-green-900 text-green-300 rounded-full text-xs font-bold animate-pulse">
+            <i class="fa-solid fa-signal mr-2"></i> LIVE CONNECTION
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="startMedia('audio')" class="bg-teal-800 hover:bg-teal-700 text-white p-3 rounded-full transition shadow-lg w-10 h-10"><i class="fa-solid fa-phone"></i></button>
+            <button onclick="startMedia('video')" class="bg-teal-800 hover:bg-teal-700 text-white p-3 rounded-full transition shadow-lg w-10 h-10"><i class="fa-solid fa-video"></i></button>
+            <a href="{% if user.is_superuser %}{% url 'dashboard:admin_dashboard' %}{% else %}{% url 'dashboard:worker_dashboard' %}{% endif %}" class="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-lg font-bold transition shadow-md">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Dashboard
+            </a>
+        </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-        
-        <div class="w-1/3 max-w-sm border-r gold-border bg-panel overflow-y-auto">
-            <div class="p-4 font-bold text-amber-400 border-b gold-border">
-                <i class="fa-solid fa-address-book mr-2"></i> Active Network
-            </div>
+        <div class="w-1/3 max-w-sm border-r gold-border bg-panel overflow-y-auto flex flex-col shadow-2xl z-10">
+            <div class="p-4 font-bold text-amber-400 border-b gold-border text-sm uppercase bg-emerald-950/40">Active Network Channels</div>
+            <a href="{% url 'dashboard:message_center' %}" class="block p-4 border-b border-amber-500/30 hover:bg-emerald-900/60 {% if not target_worker %}bg-emerald-900 border-l-4 border-amber-400{% endif %}">
+                <div class="font-bold text-amber-300">🌍 Global Network Main</div>
+            </a>
             {% for contact in contacts %}
-                <a href="{% url 'dashboard:message_center_with_worker' contact.id %}" 
-                   class="block p-4 border-b border-teal-800 hover:bg-teal-900 transition flex items-center {% if target_worker and target_worker.id == contact.id %}bg-teal-800 border-l-4 border-amber-400{% endif %}">
-                    <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-emerald-900 font-bold text-lg mr-3 shadow-lg">
-                        {{ contact.username|make_list|first|upper }}
-                    </div>
-                    <div>
-                        <div class="font-bold {% if contact.is_superuser %}text-red-400{% else %}text-white{% endif %}">
-                            {{ contact.username }}
-                        </div>
-                        <div class="text-xs text-teal-300">
-                            {% if contact.is_superuser %}Command Level{% else %}Field Agent{% endif %}
-                        </div>
-                    </div>
-                </a>
+            <a href="{% url 'dashboard:message_center_with_worker' contact.id %}" class="block p-4 border-b border-teal-900/50 hover:bg-teal-900/40 {% if target_worker and target_worker.id == contact.id %}bg-teal-800/80 border-l-4 border-amber-400{% endif %}">
+                <div class="font-bold {% if contact.is_superuser %}text-red-400{% else %}text-white{% endif %}">{{ contact.username }}</div>
+            </a>
             {% endfor %}
         </div>
 
         <div class="flex-1 flex flex-col relative bg-gradient-to-b from-teal-950 to-emerald-950">
-            {% if focused_mode %}
-                <div class="p-4 border-b gold-border bg-panel flex items-center justify-between shadow-md z-10">
-                    <div class="flex items-center">
-                        <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse mr-2"></div>
-                        <span class="font-bold text-lg text-white">Encrypted Channel: <span class="text-amber-400">{{ target_worker.username }}</span></span>
-                    </div>
-                    
-                    <div class="flex space-x-3">
-                        <a href="{% url 'dashboard:live_communications' room_name=request.user.id|add:target_worker.id %}" class="bg-teal-700 hover:bg-teal-600 text-white px-4 py-2 rounded text-sm font-bold border border-teal-500 transition flex items-center shadow">
-                            🎥 <span class="ml-2">Video Call</span>
-                        </a>
-                        <a href="{% url 'dashboard:live_communications' room_name=request.user.id|add:target_worker.id %}" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-bold border border-emerald-500 transition flex items-center shadow">
-                            📞 <span class="ml-2">Voice Call</span>
-                        </a>
-                    </div>
-                </div>
+            <div class="p-4 border-b gold-border bg-panel flex justify-between items-center shadow-md">
+                <span class="font-bold text-lg text-white">{% if target_worker %}Secure P2P Link: {{ target_worker.username }}{% else %}Global Board{% endif %}</span>
+                <button id="workspace-toggle-btn" onclick="toggleLiveWorkspace()" class="bg-amber-500 text-emerald-900 font-extrabold px-5 py-2 rounded-lg text-sm shadow-lg">
+                    <i class="fa-solid fa-chalkboard-user mr-2"></i> <span id="toggle-btn-text">Open Workspace</span>
+                </button>
+            </div>
 
-                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
-                    </div>
-
+            <div id="text-chat-panel" class="flex-1 flex flex-col overflow-hidden">
+                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
                 <div class="p-4 bg-panel border-t gold-border">
-                    <form id="chat-form" class="flex items-center space-x-4">
+                    <form id="chat-form" class="flex space-x-4">
                         {% csrf_token %}
-                        <input type="text" id="chat-input" class="flex-1 bg-teal-900 border border-teal-600 text-white rounded-lg p-3 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" placeholder="Transmit secure message..." autocomplete="off">
-                        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-emerald-900 font-bold py-3 px-6 rounded-lg transition shadow-[0_0_10px_rgba(212,175,55,0.4)]">
-                            <i class="fa-solid fa-paper-plane"></i> Send
-                        </button>
+                        <input type="text" id="chat-input" class="flex-1 bg-teal-950 p-3 rounded-xl border border-teal-700 text-white" placeholder="Transmission..." autocomplete="off">
+                        <button type="submit" class="bg-amber-500 px-6 rounded-xl font-black">Transmit</button>
                     </form>
                 </div>
-            {% else %}
-                <div class="flex-1 flex flex-col items-center justify-center text-teal-600 opacity-50">
-                    <i class="fa-solid fa-satellite-dish text-6xl mb-4"></i>
-                    <h2 class="text-2xl font-bold">Select a contact to establish a secure link.</h2>
+            </div>
+
+            <div id="live-workspace-panel" class="flex-1 hidden p-4 overflow-y-auto flex-col space-y-4">
+                <div class="flex-1 grid grid-cols-5 gap-4">
+                    <div class="col-span-3 bg-black border rounded-xl overflow-hidden relative shadow-inner">
+                        <video id="local-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                        <span class="absolute top-2 left-2 text-[10px] bg-emerald-900 px-2 py-0.5 rounded text-emerald-400">LOCAL</span>
+                    </div>
+                    
+                    <div class="col-span-2 flex flex-col gap-2">
+                        <div class="flex items-center gap-2 bg-emerald-900/50 p-2 rounded-lg">
+                            <button onclick="clearBoard()" class="bg-red-700 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-600 transition">CLEAR</button>
+                            <input type="color" id="colorPicker" value="#d4af37" class="w-8 h-8 rounded cursor-pointer">
+                            <input type="range" id="brushSize" min="1" max="15" value="3" class="flex-1">
+                        </div>
+                        <canvas id="whiteboard" class="flex-1 w-full rounded-xl"></canvas>
+                    </div>
                 </div>
-            {% endif %}
+                
+                <div class="flex justify-center space-x-4 p-4 bg-emerald-900/50 rounded-xl">
+                    <button onclick="toggleMute()" id="mute-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-bold"><i class="fa-solid fa-microphone"></i> Mute</button>
+                    <button onclick="shareScreen()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-bold"><i class="fa-solid fa-display"></i> Share Screen</button>
+                    <button onclick="stopCall()" class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-bold"><i class="fa-solid fa-phone-slash"></i> Disjoin</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    {% if focused_mode %}
     <script>
-        const targetUserId = "{{ target_worker.id }}";
-        const chatBox = document.getElementById('chat-box');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
+        const targetUserId = "{{ target_worker.id|default:'0' }}";
+        const currentUsername = "{{ request.user.username }}";
+        let lastMessageId = 0;
+        let localStream;
+        let isMuted = false;
 
-        // Function to scroll to the bottom of the chat
-        function scrollToBottom() {
+        // Whiteboard Logic
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        let painting = false;
+        
+        function resizeCanvas() { 
+            canvas.width = canvas.offsetWidth; 
+            canvas.height = canvas.offsetHeight; 
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function clearBoard() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        canvas.addEventListener('mousedown', () => painting = true);
+        canvas.addEventListener('mouseup', () => { painting = false; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!painting) return;
+            ctx.lineWidth = brushSize.value; 
+            ctx.lineCap = 'round'; 
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineTo(e.offsetX, e.offsetY); 
+            ctx.stroke(); 
+            ctx.beginPath(); 
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+
+        // Chat UI
+        function appendMessage(sender, content, isLocal = false) {
+            const chatBox = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex ${isLocal ? 'justify-end' : 'justify-start'}`;
+            msgDiv.innerHTML = `
+                <div class="message-bubble ${isLocal ? 'me' : 'them'} p-3 rounded-2xl shadow-md">
+                    <div class="text-[10px] opacity-70">${sender}</div>
+                    ${content}
+                </div>`;
+            chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Function to fetch messages from the server silently
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const content = input.value.trim();
+            if (!content) return;
+            
+            appendMessage(currentUsername, content, true);
+            input.value = '';
+            
+            await fetch(`/dashboard/api/messages/send/${targetUserId}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                body: new URLSearchParams({ 'content': content })
+            });
+        });
+
         async function fetchMessages() {
             try {
-                const response = await fetch(`/dashboard/api/messages/fetch/${targetUserId}/`);
-                const data = await response.json();
-                
-                chatBox.innerHTML = ''; // Clear box
-                
-                data.messages.forEach(msg => {
-                    const alignment = msg.is_me ? 'justify-end' : 'justify-start';
-                    const bubbleStyle = msg.is_me ? 'me' : 'them';
-                    const senderLabel = msg.is_me ? 'You' : msg.sender;
-                    
-                    const html = `
-                        <div class="flex ${alignment} animate-fade-in-up">
-                            <div class="max-w-md w-full">
-                                <div class="text-xs text-teal-400 mb-1 px-1 ${msg.is_me ? 'text-right' : 'text-left'}">${senderLabel} • ${msg.timestamp}</div>
-                                <div class="message-bubble ${bubbleStyle} p-3 rounded-2xl shadow-md inline-block ${msg.is_me ? 'float-right' : 'float-left'}">
-                                    ${msg.message}
-                                </div>
-                                <div class="clear-both"></div>
-                            </div>
-                        </div>
-                    `;
-                    chatBox.innerHTML += html;
+                const res = await fetch(`/dashboard/api/messages/fetch/${targetUserId}/`);
+                const data = await res.json();
+                data.forEach(msg => {
+                    if (msg.id > lastMessageId) {
+                        lastMessageId = msg.id;
+                        if (msg.sender__username !== currentUsername) {
+                            appendMessage(msg.sender__username, msg.content, false);
+                        }
+                    }
                 });
-            } catch (error) {
-                console.error("Error fetching messages:", error);
+            } catch (e) { console.warn("Polling paused."); }
+        }
+
+        async function startMedia(type) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: type === 'video', audio: true });
+                document.getElementById('local-video').srcObject = localStream;
+                document.getElementById('connection-status').classList.remove('hidden');
+            } catch (err) { alert("Hardware access denied."); }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            if(localStream) localStream.getAudioTracks()[0].enabled = !isMuted;
+            document.getElementById('mute-btn').innerHTML = isMuted ? '<i class="fa-solid fa-microphone-slash"></i> Unmute' : '<i class="fa-solid fa-microphone"></i> Mute';
+        }
+
+        async function shareScreen() {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                document.getElementById('local-video').srcObject = screenStream;
+            } catch(e) { console.error("Sharing cancelled"); }
+        }
+
+        function stopCall() {
+            if(localStream) localStream.getTracks().forEach(track => track.stop());
+            document.getElementById('local-video').srcObject = null;
+            document.getElementById('connection-status').classList.add('hidden');
+        }
+
+        function toggleLiveWorkspace() {
+            document.getElementById('text-chat-panel').classList.toggle('hidden');
+            document.getElementById('live-workspace-panel').classList.toggle('hidden');
+            
+            // Fix: Re-initialize whiteboard when workspace becomes visible
+            if (!document.getElementById('live-workspace-panel').classList.contains('hidden')) {
+                resizeCanvas();
             }
         }
 
-        // Handle sending messages without reloading
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            // Clear input instantly for UI speed
-            chatInput.value = '';
-
-            try {
-                await fetch(`/dashboard/api/messages/send/${targetUserId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ message: message })
-                });
-                
-                // Instantly fetch to show the new message
-                await fetchMessages();
-                setTimeout(scrollToBottom, 50); 
-            } catch (error) {
-                console.error("Error sending message:", error);
-            }
-        });
-
-        // Start the engine! Fetch immediately, then every 2.5 seconds
-        fetchMessages().then(() => setTimeout(scrollToBottom, 100));
         setInterval(fetchMessages, 2500);
-
+        fetchMessages();
     </script>
-    {% endif %}
 </body>
 </html>
-<div class="contact-list">
-    <h5>Available Workers</h5>
-    <ul class="list-group">
-        {% for contact in contacts %}
-            <li class="list-group-item">
-                <a href="{% url 'dashboard:message_center_with_worker' contact.id %}">
-                    {{ contact.username }}
-                </a>
-            </li>
-        {% empty %}
-            <li class="list-group-item text-muted">No other workers available.</li>
-        {% endfor %}
-    </ul>
-</div>

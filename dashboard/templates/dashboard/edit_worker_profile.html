@@ -1,33 +1,217 @@
 {% extends 'main_base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto mt-10">
-    <div class="bg-slate-900/90 p-8 rounded-lg border border-amber-500 shadow-2xl">
-        <div class="flex justify-between items-center mb-6 border-b border-amber-500 pb-4">
-            <h2 class="text-2xl font-bold text-amber-400">
-                <i class="fa-solid fa-user-pen mr-2"></i> Edit Unit Profile: {{ worker.username }}
-            </h2>
-            <a href="{% url 'dashboard:admin_dashboard' %}" class="text-slate-400 hover:text-white transition">Back</a>
+<!-- 1. THE ANIMATED AURORA BACKGROUND -->
+<div class="relative min-h-screen overflow-hidden bg-[#00100a] text-slate-100 font-sans antialiased py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    
+    <!-- Moving Ambient Orbs -->
+    <div class="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob bg-emerald-600 pointer-events-none"></div>
+    <div class="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-blob animation-delay-2000 bg-amber-500 pointer-events-none"></div>
+    <div class="absolute bottom-[-20%] left-[20%] w-[80vw] h-[80vw] rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-blob animation-delay-4000 bg-teal-800 pointer-events-none"></div>
+
+    <!-- 2. MAIN GLASS CONTAINER -->
+    <div class="relative z-10 w-full max-w-7xl mx-auto">
+        
+        <!-- HEADER ROW -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-white drop-shadow-md">
+                    Complete <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-600">Identity</span>
+                </h1>
+                <p class="text-emerald-300/80 mt-2 text-sm uppercase tracking-[0.2em] font-semibold">Master Configuration Environment</p>
+            </div>
+            
+            <a href="{% url 'dashboard:worker_dashboard' %}" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full backdrop-blur-md text-amber-400 font-semibold tracking-wide transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:-translate-y-1 flex items-center gap-2">
+                <i class="fas fa-arrow-left text-sm"></i> Back to Hub
+            </a>
         </div>
 
-        <form method="POST" class="space-y-4">
+        {% if messages %}
+            <div class="mb-8 space-y-4">
+                {% for message in messages %}
+                    <div class="bg-emerald-500/20 border border-emerald-400/50 text-emerald-100 px-6 py-4 rounded-2xl backdrop-blur-md shadow-xl flex items-center gap-3">
+                        <i class="fas fa-check-circle text-amber-400 text-xl"></i>
+                        <span class="font-medium tracking-wide">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- 3. FROSTED GLASS FORM -->
+        <form method="POST" enctype="multipart/form-data" class="bg-white/5 backdrop-blur-[40px] border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
             {% csrf_token %}
             
-            <div>
-                <label class="block text-sky-400 font-bold mb-2">Access Level</label>
-                <select name="access_level" class="w-full bg-slate-800 border border-slate-600 text-white p-3 rounded focus:border-amber-400 focus:outline-none">
-                    <option value="Standard Worker" {% if worker.worker_profile.access_level == 'Standard Worker' %}selected{% endif %}>Standard Worker</option>
-                    <option value="Senior Worker" {% if worker.worker_profile.access_level == 'Senior Worker' %}selected{% endif %}>Senior Worker</option>
-                    <option value="Supervisor" {% if worker.worker_profile.access_level == 'Supervisor' %}selected{% endif %}>Supervisor</option>
-                </select>
-            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-12">
+                
+                <!-- AVATAR & QUICK STATS (LEFT) -->
+                <div class="xl:col-span-4 flex flex-col items-center border-b xl:border-b-0 xl:border-r border-white/10 pb-10 xl:pb-0 xl:pr-10">
+                    
+                    <div class="relative group cursor-pointer mb-6">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-500"></div>
+                        <div class="relative w-56 h-56 rounded-full bg-[#021c13] border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-2xl">
+                            <!-- Placeholder Text -->
+                            <span class="text-7xl font-black text-amber-400">{{ user.username|slice:":1"|upper|default:"W" }}</span>
+                            
+                            <!-- Upload Overlay -->
+                            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center">
+                                <i class="fas fa-camera text-4xl text-white mb-2 transform -translate-y-4 group-hover:translate-y-0 transition duration-300"></i>
+                                <span class="text-sm text-white font-bold uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition duration-300">Upload Photo</span>
+                                <input type="file" name="profile_picture" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="pt-4 mt-6 border-t border-slate-700">
-                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-teal-900 font-bold py-3 px-4 rounded transition">
-                    Update Unit Parameters
-                </button>
+                    <h2 class="text-3xl font-bold text-white tracking-tight text-center">{{ user.username }}</h2>
+                    <p class="text-amber-400 font-medium tracking-widest uppercase text-xs mt-3 bg-amber-500/10 px-5 py-2 rounded-full border border-amber-500/20 text-center">
+                        {{ user.profile.job_title|default:"Active Professional" }}
+                    </p>
+
+                    <div class="w-full mt-10 bg-black/20 rounded-2xl p-6 border border-white/5 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-emerald-300/60 uppercase font-bold tracking-widest">Account Status</span>
+                            <span class="text-emerald-400 text-sm font-black flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-emerald-300/60 uppercase font-bold tracking-widest">System Access</span>
+                            <span class="text-amber-400 text-sm font-black">FULL CLEARANCE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA FIELDS (RIGHT) -->
+                <div class="xl:col-span-8 space-y-12">
+                    
+                    <!-- Section 1: System Credentials -->
+                    <div>
+                        <h3 class="text-amber-400 font-bold text-sm uppercase tracking-[0.3em] flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
+                            <i class="fas fa-server"></i> System Credentials
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">System Username</label>
+                                <input type="text" name="username" value="{{ user.username }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Email Address</label>
+                                <input type="email" name="email" value="{{ user.email }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Personal Details -->
+                    <div>
+                        <h3 class="text-amber-400 font-bold text-sm uppercase tracking-[0.3em] flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
+                            <i class="far fa-id-card"></i> Personal Details
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">First Name</label>
+                                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Last Name</label>
+                                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Phone Number</label>
+                                <input type="text" name="phone" value="{{ user.profile.phone|default:'' }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Location / Address</label>
+                                <input type="text" name="location" value="{{ user.profile.location|default:'' }}" placeholder="City, Region" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Professional Identity -->
+                    <div>
+                        <h3 class="text-amber-400 font-bold text-sm uppercase tracking-[0.3em] flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
+                            <i class="fas fa-briefcase"></i> Professional Identity
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Professional Title</label>
+                                <input type="text" name="job_title" value="{{ user.profile.job_title|default:'' }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Department / Work Unit</label>
+                                <input type="text" name="department" value="{{ user.profile.department|default:'' }}" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Web Presence -->
+                    <div>
+                        <h3 class="text-amber-400 font-bold text-sm uppercase tracking-[0.3em] flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
+                            <i class="fas fa-globe"></i> Web Links
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2 relative">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">LinkedIn Profile URL</label>
+                                <div class="flex">
+                                    <span class="inline-flex items-center px-4 bg-black/40 border border-r-0 border-white/10 rounded-l-2xl text-emerald-400">
+                                        <i class="fab fa-linkedin"></i>
+                                    </span>
+                                    <input type="url" name="linkedin" value="{{ user.profile.linkedin|default:'' }}" placeholder="https://..." class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-r-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                                </div>
+                            </div>
+                            <div class="space-y-2 relative">
+                                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">GitHub / Portfolio URL</label>
+                                <div class="flex">
+                                    <span class="inline-flex items-center px-4 bg-black/40 border border-r-0 border-white/10 rounded-l-2xl text-emerald-400">
+                                        <i class="fab fa-github"></i>
+                                    </span>
+                                    <input type="url" name="github" value="{{ user.profile.github|default:'' }}" placeholder="https://..." class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-r-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Biography -->
+                    <div class="space-y-2 pt-2">
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 ml-2">Personal Biography</label>
+                        <textarea name="bio" rows="5" class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white px-5 py-4 rounded-2xl text-lg font-medium outline-none transition-all duration-300 focus:bg-black/40 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 resize-y">{{ user.profile.bio|default:'' }}</textarea>
+                    </div>
+
+                    <!-- SUBMIT BUTTON -->
+                    <div class="pt-8 flex justify-end">
+                        <button type="submit" class="relative inline-flex items-center justify-center px-12 py-6 overflow-hidden font-bold tracking-widest text-white rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 group shadow-[0_15px_30px_rgba(245,158,11,0.3)] hover:shadow-[0_20px_40px_rgba(245,158,11,0.5)] transition-all duration-300 transform hover:-translate-y-1 w-full md:w-auto">
+                            <span class="absolute w-0 h-0 transition-all duration-500 ease-out bg-white rounded-full group-hover:w-96 group-hover:h-96 opacity-10"></span>
+                            <span class="relative flex items-center gap-3 uppercase text-emerald-950 font-black text-xl">
+                                <i class="fas fa-save"></i> Execute Global Update
+                            </span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
+<!-- INJECTED ANIMATION CSS -->
+<style>
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 10s infinite alternate ease-in-out;
+    }
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+    
+    /* Smooth out autofill backgrounds in Chrome */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+        transition: background-color 5000s ease-in-out 0s;
+        -webkit-text-fill-color: white !important;
+    }
+</style>
 {% endblock %}
