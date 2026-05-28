@@ -1,37 +1,129 @@
-{% extends 'main_base.html' %}
+{% extends 'base.html' %} 
 
 {% block content %}
+<style>
+    :root {
+        --cyber-emerald-dark: #022c22;
+        --cyber-emerald-mid: #064e3b;
+        --solid-gold: #d4af37;
+    }
+    body { background-color: #022c22; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+    .dashboard-card { background: rgba(6, 78, 59, 0.45); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; }
+    .forum-navbar { background: linear-gradient(90deg, var(--cyber-emerald-mid), var(--cyber-emerald-dark)); border-bottom: 2px solid var(--solid-gold); padding: 1rem 2rem; }
+</style>
 
-<div style="padding:30px; font-family:Arial;">
+<div class="admin-container" style="padding: 2rem; min-height: 100vh;">
 
-    <h1>Submissions Dashboard</h1>
-
-    <br>
-
-    <a href="{% url 'dashboard:admin_dashboard' %}">
-        ← Back to Admin Dashboard
-    </a>
-
-    <hr>
-
-    {% for submission in submissions %}
-
-        <div style="padding:15px; border:1px solid #ccc; margin-bottom:15px;">
-
-            <h3>{{ submission.title }}</h3>
-
-            <p>
-                {{ submission.description }}
-            </p>
-
+    <header class="forum-navbar flex justify-between items-center mb-6 rounded-lg">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-file-tray-full text-amber-400 text-xl"></i>
+            <h1 class="text-xl font-bold uppercase tracking-wider text-white">Submissions Intelligence Desk</h1>
         </div>
+        <span class="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 font-mono">
+            SECURE LEDGER
+        </span>
+    </header>
 
-    {% empty %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="dashboard-card p-4 border-l-4 border-amber-500">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Awaiting Evaluation</p>
+            <h3 class="text-2xl font-black text-white mt-1">{{ pending_count|default:"0" }}</h3>
+        </div>
+        <div class="dashboard-card p-4 border-l-4 border-green-500">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Processed Units</p>
+            <h3 class="text-2xl font-black text-white mt-1">{{ reviewed_count|default:"0" }}</h3>
+        </div>
+        <div class="dashboard-card p-4 border-l-4 border-sky-500">
+            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Avg AI Core Rating</p>
+            <h3 class="text-2xl font-black text-sky-400 mt-1">{{ avg_ai_score|default:"--" }}%</h3>
+        </div>
+    </div>
 
-        <p>No submissions available.</p>
-
-    {% endfor %}
+    <div class="bg-slate-900/90 p-6 rounded-lg border border-teal-500/40 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-teal-400 font-bold flex items-center gap-2">
+                📂 Incoming Directives Data Stream
+            </h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-slate-400 border-b border-slate-700 text-sm bg-slate-950/50">
+                        <th class="p-3">Worker / Identity</th>
+                        <th class="p-3">Task Details</th>
+                        <th class="p-3">AI Diagnostic</th>
+                        <th class="p-3">Status</th>
+                        <th class="p-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in submissions %}
+                    <tr class="border-b border-slate-800/60 hover:bg-emerald-950/20 transition-colors">
+                        <td class="p-3 font-semibold text-white">
+                            {{ submission.worker.username }}
+                        </td>
+                        
+                        <td class="p-3">
+                            <span class="text-amber-300 font-medium block text-sm">
+                                {{ submission.title|default:"Task Submission" }}
+                            </span>
+                            <span class="text-xs text-slate-400 block truncate max-w-xs mt-0.5">
+                                {{ submission.content_or_link|default:submission.content|truncatechars:50 }}
+                            </span>
+                        </td>
+                        
+                        <td class="p-3">
+                            {% if submission.ai_score is not None %}
+                                <div class="flex items-center space-x-2">
+                                    {% if submission.ai_score >= 75 %}
+                                        <span class="px-2 py-0.5 rounded text-xs bg-green-500/10 text-green-400 font-mono border border-green-500/20">
+                                            Score: {{ submission.ai_score }}
+                                        </span>
+                                    {% elif submission.ai_score >= 40 %}
+                                        <span class="px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 font-mono border border-amber-500/20">
+                                            Score: {{ submission.ai_score }}
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-400 font-mono border border-red-500/20">
+                                            Score: {{ submission.ai_score }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-xs text-slate-500 italic">No AI Evaluation</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="p-3 text-sm">
+                            {% if submission.is_reviewed or submission.status == "Approved" %}
+                                <span class="text-green-400 font-bold flex items-center gap-1.5 text-xs">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> VERIFIED
+                                </span>
+                            {% else %}
+                                <span class="text-amber-400 font-bold flex items-center gap-1.5 text-xs animate-pulse">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> PENDING REVIEW
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="p-3 text-right">
+                            <a href="#" class="text-xs bg-teal-600 hover:bg-teal-500 text-white px-3 py-1 rounded font-bold transition shadow-md shadow-teal-900/40 inline-block">
+                                Audit Work
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-slate-500 p-8 text-center font-medium">
+                            📡 No incoming workspace submissions detected in the current buffer.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 </div>
-
 {% endblock %}

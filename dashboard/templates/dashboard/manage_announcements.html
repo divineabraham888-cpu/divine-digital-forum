@@ -1,35 +1,50 @@
 {% extends 'main_base.html' %}
 
 {% block content %}
+<div class="container mt-4">
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-success">{{ msg }}</div>
+        {% endfor %}
+    {% endif %}
 
-<div style="padding:30px; font-family:Arial;">
-
-    <h1>Manage Announcements</h1>
-
-    <br>
-
-    <a href="{% url 'dashboard:admin_dashboard' %}">
-        ← Back to Admin Dashboard
-    </a>
-
-    <hr>
-
-    {% for announcement in announcements %}
-
-        <div style="padding:15px; border:1px solid #ccc; margin-bottom:15px;">
-
-            <h3>{{ announcement.title }}</h3>
-
-            <p>{{ announcement.content }}</p>
-
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card p-4 shadow-sm border-0 bg-light">
+                <h4>Broadcast Update</h4>
+                <p class="small text-muted">Deploys notice announcements right onto the worker control decks.</p>
+                <hr>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Heading Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g., Scheduled Maintenance Downtime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Content Details</label>
+                        <textarea name="content" class="form-control" rows="4" placeholder="Type instructions clearly here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Launch Announcement</button>
+                </form>
+            </div>
         </div>
 
-    {% empty %}
-
-        <p>No announcements available.</p>
-
-    {% endfor %}
-
+        <div class="col-md-7">
+            <div class="card p-4 shadow-sm">
+                <h4 class="mb-3">Sent Broadcast History</h4>
+                <div class="d-flex flex-column gap-3">
+                    {% for announcement in announcements %}
+                        <div class="border rounded p-3 bg-white shadow-xs">
+                            <h5 class="text-primary mb-1">{{ announcement.title }}</h5>
+                            <p class="mb-1 text-dark small">{{ announcement.content }}</p>
+                            <small class="text-muted d-block mt-2">Published: {{ announcement.created_at|date:"M d, Y - H:i" }} by Admin</small>
+                        </div>
+                    {% empty %}
+                        <div class="text-center p-4 text-muted border border-dashed rounded">No system announcements deployed yet.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
 {% endblock %}

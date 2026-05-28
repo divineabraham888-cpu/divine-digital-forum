@@ -1,30 +1,69 @@
-{% extends 'main_base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
+<style>
+    :root {
+        --cyber-emerald-dark: #022c22;
+        --cyber-emerald-mid: #064e3b;
+        --solid-gold: #d4af37;
+    }
+    body { background-color: #022c22; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+    .dashboard-card { background: rgba(6, 78, 59, 0.45); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; }
+    .forum-navbar { background: linear-gradient(90deg, var(--cyber-emerald-mid), var(--cyber-emerald-dark)); border-bottom: 2px solid var(--solid-gold); padding: 1rem 2rem; }
+</style>
 
-<div class="container mt-5">
+<div class="admin-container" style="padding: 2rem; min-height: 100vh;">
 
-    <div class="card shadow-sm p-4">
+    <header class="forum-navbar flex justify-between items-center mb-6 rounded-lg">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-lightbulb text-amber-400 text-xl"></i>
+            <h1 class="text-xl font-bold uppercase tracking-wider text-white">Platform Suggestion Box</h1>
+        </div>
+        <span class="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 font-mono">
+            OPTIMIZATION BUFFER
+        </span>
+    </header>
 
-        <h2 class="mb-4">
-            💡 Submit a Suggestion
-        </h2>
+    <div class="bg-slate-900/90 p-6 rounded-lg border border-teal-500/40 shadow-xl">
+        <p class="text-slate-400 text-sm mb-6">
+            Review structural optimization feedback, tool ideas, or interface complaints compiled from structural network node accounts.
+        </p>
+        
+        <hr class="border-slate-800 mb-6">
 
-        <form method="POST">
-
-            {% csrf_token %}
-
-            {{ form.as_p }}
-
-            <button type="submit"
-                    class="btn btn-primary">
-                Submit Suggestion
-            </button>
-
-        </form>
-
+        {% if suggestions %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for item in suggestions %}
+                    <div class="dashboard-card p-5 flex flex-col justify-between hover:border-amber-500/50 transition duration-300">
+                        <div>
+                            <h5 class="text-amber-400 font-bold tracking-wide mb-2 text-base">
+                                {{ item.title|default:"Feedback Record" }}
+                            </h5>
+                            <p class="text-slate-300 text-sm leading-relaxed font-mono bg-black/20 p-3 rounded border border-slate-800/60">
+                                "{{ item.content }}"
+                            </p>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-xs text-slate-400 font-mono mt-4 pt-3 border-t border-slate-800/40">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-user text-teal-500"></i> Identity: #{{ item.user_id|default:"Anonymous" }}
+                            </span>
+                            <span class="text-slate-500">
+                                {{ item.created_at|date:"M d, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12 bg-black/20 rounded-xl border border-dashed border-slate-800">
+                <div class="text-slate-600 text-4xl mb-3">📡</div>
+                <p class="text-slate-400 mb-3 font-mono">The ingestion box buffer is completely clear.</p>
+                <span class="px-3 py-1 text-xs bg-emerald-500/10 text-green-400 rounded-full font-mono border border-green-500/20">
+                    No Unresolved Reports Detected
+                </span>
+            </div>
+        {% endif %}
     </div>
-
 </div>
-
 {% endblock %}

@@ -1,71 +1,76 @@
-{% extends 'main_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ forum_name }} - Unit Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #022c22; color: #e2e8f0; }
+        .bg-panel { background: rgba(6, 78, 59, 0.45); border: 1px solid rgba(212, 175, 55, 0.25); }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-6 border-b-2 border-amber-500 pb-4">
+            <h1 class="text-3xl font-bold text-amber-400"><i class="fa-solid fa-users-gear mr-2"></i> System Unit Management</h1>
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="bg-red-600 px-4 py-2 rounded font-bold text-white"><i class="fa-solid fa-arrow-left"></i> Command Center</a>
+        </div>
 
-{% block content %}
-
-<div style="padding: 30px; font-family: Arial;">
-
-    <h1>Manage Workers</h1>
-
-    <br>
-
-    <a href="{% url 'dashboard:admin_dashboard' %}">
-        ← Back to Admin Dashboard
-    </a>
-
-    <hr>
-
-    <table border="1" cellpadding="10" cellspacing="0">
-
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-            {% for worker in workers %}
-
-            <tr>
-
-                <td>{{ worker.username }}</td>
-
-                <td>{{ worker.email }}</td>
-
-                <td>
-
-                    <a href="{% url 'dashboard:edit_worker' worker.id %}">
-                        Edit
-                    </a>
-
-                    |
-
-                    <a href="{% url 'dashboard:delete_worker' worker.id %}">
-                        Delete
-                    </a>
-
-                </td>
-
-            </tr>
-
-            {% empty %}
-
-            <tr>
-
-                <td colspan="3">
-                    No workers found.
-                </td>
-
-            </tr>
-
+        {% if messages %}
+            {% for message in messages %}
+                <div class="p-4 mb-4 rounded font-bold {% if message.tags == 'error' %}bg-red-900 border border-red-500{% else %}bg-green-900 border border-green-500{% endif %}">
+                    {{ message }}
+                </div>
             {% endfor %}
+        {% endif %}
 
-        </tbody>
-
-    </table>
-
-</div>
-
-{% endblock %}
+        <div class="bg-panel rounded-xl overflow-hidden shadow-2xl">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-teal-900/80 border-b border-amber-500/50">
+                        <th class="p-4 text-amber-400">Unit Name</th>
+                        <th class="p-4 text-amber-400">Access Level</th>
+                        <th class="p-4 text-amber-400">Status</th>
+                        <th class="p-4 text-amber-400 text-right">Command Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-teal-800">
+                    {% for worker in workers %}
+                    {% with profile=worker.worker_profile %}
+                    <tr class="hover:bg-teal-800/30 transition">
+                        <td class="p-4 font-bold text-white">{{ worker.username }}</td>
+                        <td class="p-4 text-teal-300">{{ profile.access_level|default:"Standard" }}</td>
+                        <td class="p-4">
+                            {% if profile.is_blocked %}
+                                <span class="bg-red-900 text-red-300 px-2 py-1 rounded text-xs font-bold border border-red-700"><i class="fa-solid fa-lock"></i> BLOCKED</span>
+                            {% elif profile.is_suspended %}
+                                <span class="bg-orange-900 text-orange-300 px-2 py-1 rounded text-xs font-bold border border-orange-700"><i class="fa-solid fa-pause"></i> SUSPENDED</span>
+                            {% else %}
+                                <span class="bg-emerald-900 text-emerald-300 px-2 py-1 rounded text-xs font-bold border border-emerald-700"><i class="fa-solid fa-check"></i> ACTIVE</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right space-x-2">
+                            <a href="{% url 'dashboard:manage_worker' worker.id 'suspend' %}" class="inline-block bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-2 rounded transition">
+                                {% if profile.is_suspended %}Reactivate{% else %}Suspend{% endif %}
+                            </a>
+                            <a href="{% url 'dashboard:manage_worker' worker.id 'block' %}" class="inline-block bg-red-700 hover:bg-red-600 text-white text-xs px-3 py-2 rounded transition">
+                                {% if profile.is_blocked %}Unblock{% else %}Block{% endif %}
+                            </a>
+                            <a href="{% url 'dashboard:manage_worker' worker.id 'reset_pwd' %}" class="inline-block bg-teal-600 hover:bg-teal-500 text-white text-xs px-3 py-2 rounded transition" onclick="return confirm('Confirm password reset for {{ worker.username }}?');">
+                                Reset Pwd
+                            </a>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-teal-500 font-bold">No active worker units found in the matrix.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,151 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<style>
+    /* Premium Modern Dark-Glass Theme */
+    body {
+        background: radial-gradient(circle at top left, #052c18, #0a4d2b), 
+                    radial-gradient(circle at bottom right, #8a7322, #4a3e11);
+        background-blend-mode: multiply;
+        color: #f8f9fa;
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .glass-panel {
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        padding: 24px;
+    }
+    .btn-gold { background: linear-gradient(135deg, #D4AF37, #AA8A28); color: #111; font-weight: 700; border: none; }
+    .btn-gold:hover { background: linear-gradient(135deg, #AA8A28, #D4AF37); color: #000; transform: translateY(-2px); }
+    .video-container { position: relative; width: 100%; border-radius: 15px; overflow: hidden; background: #000; border: 2px solid rgba(255,255,255,0.1); }
+    video { width: 100%; height: auto; display: block; object-fit: cover; }
+    .local-video { transform: scaleX(-1); }
+    .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; border: 1px solid rgba(212,175,55,0.5); }
+    
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast-msg { background: rgba(0,0,0,0.8); border-left: 4px solid #D4AF37; padding: 12px 20px; border-radius: 8px; color: #fff; }
+</style>
+
+<div id="toast-container"></div>
+
+<div class="container-fluid mt-4 px-lg-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+        <h2 class="fw-bold mb-0 text-white">HQ Collaboration Hub</h2>
+        <div class="text-end">
+            <span class="d-block text-muted small">Your Network ID</span>
+            <span id="my-peer-id" class="badge bg-dark border border-warning fs-5 text-warning px-3 py-2">Initializing...</span>
+        </div>
+    </div>
+    
+    <div class="glass-panel mb-4 d-flex flex-wrap gap-3 align-items-center justify-content-center">
+        <button id="btn-join" class="btn btn-success px-4 py-2 fw-bold fs-5 shadow">▶ Initialize Hardware</button>
+        <button id="btn-mic" class="btn btn-outline-light px-3 py-2" disabled>🎤 Mic On</button>
+        <button id="btn-cam" class="btn btn-outline-light px-3 py-2" disabled>📹 Cam On</button>
+        <button id="btn-screen" class="btn btn-gold px-3 py-2" disabled>🖥️ Share Screen</button>
+        <button id="btn-leave" class="btn btn-danger px-3 py-2 ms-lg-4" disabled>❌ End Session</button>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="glass-panel mb-4">
+                <h5 class="text-warning mb-3 fw-bold">Live Feeds</h5>
+                <div id="remote-video-area" class="d-flex flex-column gap-3 mb-3">
+                    <p class="text-muted text-center py-4 my-0" id="waiting-msg">Waiting for incoming connections...</p>
+                </div>
+                <div class="video-container" style="max-width: 250px; margin: 0 auto; display: none;" id="local-video-container">
+                    <video id="local-video" class="local-video" autoplay muted></video>
+                    <span class="video-label text-warning">You</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="glass-panel h-100">
+                <ul class="nav nav-pills mb-3" id="hub-tabs">
+                    <li class="nav-item"><button class="nav-link active btn-gold text-dark me-2" id="chat-tab" data-bs-toggle="pill" data-bs-target="#chat-pane">Secure Chat</button></li>
+                </ul>
+                <div class="tab-content h-100">
+                    <div class="tab-pane fade show active" id="chat-pane">
+                        <div id="chat-box" class="p-3 mb-3 rounded" style="height: 400px; overflow-y: auto; background: rgba(0,0,0,0.5);"></div>
+                        <div class="input-group">
+                            <input type="text" id="chat-message-input" class="form-control bg-dark text-white">
+                            <button id="chat-message-submit" class="btn btn-success">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- PEERJS INITIALIZATION ---
+    const username = "{{ request.user.username }}" || "User_" + Math.floor(Math.random() * 1000);
+    const peer = new Peer(username, {
+        host: 'localhost',
+        port: 9000,
+        path: '/',
+        debug: 3
+    });
+
+    let localStream = null;
+    let currentCall = null;
+    let dataConnection = null;
+
+    // --- UTILS ---
+    function showToast(message, isError = false) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerHTML = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // --- CORE LOGIC ---
+    peer.on('open', (id) => {
+        document.getElementById('my-peer-id').innerText = id;
+        showToast("Connected to Central Routing Server.");
+    });
+
+    document.getElementById('btn-join').addEventListener('click', async () => {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local-video-container').style.display = 'block';
+            document.getElementById('local-video').srcObject = localStream;
+            
+            // Enable buttons
+            ['btn-mic', 'btn-cam', 'btn-screen', 'btn-leave'].forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            document.getElementById('btn-join').disabled = true;
+
+            peer.on('call', (call) => {
+                call.answer(localStream);
+                // Handle remote streams here
+            });
+        } catch (err) {
+            showToast("Hardware Access Denied.", true);
+        }
+    });
+
+    // Handle incoming Data/Chat
+    peer.on('connection', (conn) => {
+        dataConnection = conn;
+        conn.on('data', (data) => {
+            if (data.type === 'chat') {
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML += `<div><strong>${conn.peer}:</strong> ${data.msg}</div>`;
+            }
+        });
+    });
+</script>
+{% endblock %}

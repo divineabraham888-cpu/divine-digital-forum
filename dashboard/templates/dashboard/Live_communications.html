@@ -1,0 +1,415 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<style>
+    body { background: #0b0e11; color: #fff; min-height: 100vh; }
+    .glass-panel { background: rgba(20, 20, 20, 0.8); border: 1px solid #444; border-radius: 15px; padding: 20px; }
+    .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    video { width: 100%; min-height: 350px; border-radius: 10px; background: #000; border: 2px solid #333; object-fit: cover; }
+    .scratchpad-container { background: #fff; border-radius: 8px; border: 2px solid #D4AF37; margin-bottom: 10px; }
+    #whiteboard { width: 100%; height: 320px; cursor: crosshair; touch-action: none; }
+    .hidden { display: none !important; }
+    
+    /* Custom Chat Styling */
+    .chat-container { display: flex; flex-direction: column; height: 300px; background: #141414; border-radius: 8px; border: 1px solid #444; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; }
+    .chat-input-area { display: flex; border-top: 1px solid #444; padding: 5px; }
+    .msg-bubble { margin-bottom: 8px; padding: 6px 12px; border-radius: 12px; max-width: 80%; word-break: break-all; }
+    .msg-local { background: #D4AF37; color: #000; align-self: flex-end; margin-left: auto; }
+    .msg-remote { background: #333; color: #fff; align-self: flex-start; }
+</style>
+
+<div id="connection-prompt" class="container text-center mt-5">
+    <div class="glass-panel p-5">
+        <h3>Live Communications Hub</h3>
+        <p class="text-secondary">Logged in as: <strong class="text-warning">{{ request.user.username }}</strong></p>
+        <button id="btn-start-session" class="btn btn-lg btn-successpx-4">Connect to Live Room</button>
+    </div>
+</div>
+
+<div id="comms-interface" class="container-fluid mt-3 hidden">
+    <div class="glass-panel mb-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <button id="btn-join" class="btn btn-sm btn-success">Initialize My Camera/Mic</button>
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <input type="text" id="remote-id" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Target worker's username...">
+                <button id="btn-connect" class="btn btn-sm btn-primary px-3">Call & Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="glass-panel d-flex flex-direction-column gap-3">
+                <div class="video-grid">
+                    <div>
+                        <h6 class="text-secondary text-center mb-2">Local Feed (You)</h6>
+                        <video id="local-video" autoplay muted playsinline></video>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary text-center mb-2">Remote Feed</h6>
+                        <div id="remote-video-area" class="w-100 position-relative" style="min-height: 350px; background: #000; border-radius: 10px; border: 2px solid #333;">
+                            <div id="remote-placeholder" class="position-absolute top-50 start-50 translate-middle text-muted">No ongoing live feed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="call-controls" class="d-flex justify-content-center gap-2 mt-2 py-2 border-top border-secondary">
+                    <button id="ctrl-mute" class="btn btn-outline-light btn-sm" disabled>🔒 Mute Mic</button>
+                    <button id="ctrl-camera" class="btn btn-outline-light btn-sm" disabled>📹 Video Off</button>
+                    <button id="ctrl-screen" class="btn btn-outline-warning btn-sm" disabled>🖥️ Share Screen</button>
+                    <button id="ctrl-hangup" class="btn btn-danger btn-sm px-3" disabled>🛑 End Call</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="glass-panel mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-warning m-0">Interactive Scratchpad</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button id="tool-draw" class="btn btn-warning active">✏️ Draw</button>
+                        <button id="tool-erase" class="btn btn-outline-light">🧽 Eraser</button>
+                        <button id="btn-clear" class="btn btn-outline-danger">Clear</button>
+                    </div>
+                </div>
+                <div class="scratchpad-container">
+                    <canvas id="whiteboard"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h6 class="text-info mb-2">Direct Channel Messages</h6>
+                <div class="chat-container">
+                    <div id="chat-messages" class="chat-messages d-flex flex-column"></div>
+                    <form id="chat-form" class="chat-input-area">
+                        <input type="text" id="chat-input" class="form-control form-control-sm bg-dark text-white border-secondary me-1" placeholder="Type a message..." required disabled>
+                        <button type="submit" id="btn-send-chat" class="btn btn-sm btn-info text-dark" disabled>Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let peer = null;
+    let localStream = null;
+    let screenStream = null;
+    let dataConnection = null;
+    let currentCall = null;
+    
+    // Feature states
+    let drawing = false;
+    let canvasMode = 'draw'; // 'draw' or 'erase'
+    let micMuted = false;
+    let camOff = false;
+    let sharingScreen = false;
+
+    const currentUsername = "{{ request.user.username }}";
+
+    // --- SYSTEM INITIALIZATION ---
+    document.getElementById('btn-start-session').addEventListener('click', () => {
+        // Create peer client registered via the current Django session user
+        peer = new Peer(currentUsername, { host: 'localhost', port: 9000, path: '/' });
+        
+        peer.on('open', (id) => {
+            document.getElementById('connection-prompt').classList.add('hidden');
+            document.getElementById('comms-interface').classList.remove('hidden');
+            initCanvas();
+        });
+
+        // Handle incoming sync/data connection channels
+        peer.on('connection', (conn) => {
+            dataConnection = conn;
+            setupDataListeners(conn);
+        });
+
+        // Handle incoming AV stream requests
+        peer.on('call', (call) => {
+            if (confirm(`Incoming call from a user. Accept?`)) {
+                currentCall = call;
+                call.answer(localStream);
+                handleCallStream(call);
+                toggleControlButtons(true);
+            }
+        });
+
+        peer.on('error', (err) => {
+            console.error("PeerJS Error State: ", err);
+            alert("Connection error: " + err.type);
+        });
+    });
+
+    // --- CONTROLS STRAP LOGIC ---
+    function toggleControlButtons(enabled) {
+        document.getElementById('ctrl-mute').disabled = !enabled;
+        document.getElementById('ctrl-camera').disabled = !enabled;
+        document.getElementById('ctrl-screen').disabled = !enabled;
+        document.getElementById('ctrl-hangup').disabled = !enabled;
+        document.getElementById('chat-input').disabled = !enabled;
+        document.getElementById('btn-send-chat').disabled = !enabled;
+    }
+
+    // Audio Mute System
+    document.getElementById('ctrl-mute').addEventListener('click', () => {
+        if (!localStream) return;
+        micMuted = !micMuted;
+        localStream.getAudioTracks()[0].enabled = !micMuted;
+        document.getElementById('ctrl-mute').innerText = micMuted ? "🔊 Unmute Mic" : "🔒 Mute Mic";
+        document.getElementById('ctrl-mute').classList.toggle('btn-outline-danger', micMuted);
+    });
+
+    // Camera Toggle System
+    document.getElementById('ctrl-camera').addEventListener('click', () => {
+        if (!localStream || sharingScreen) return;
+        camOff = !camOff;
+        localStream.getVideoTracks()[0].enabled = !camOff;
+        document.getElementById('ctrl-camera').innerText = camOff ? "📹 Video On" : "📹 Video Off";
+        document.getElementById('ctrl-camera').classList.toggle('btn-outline-danger', camOff);
+    });
+
+    // Native Screen Share Deployment
+    document.getElementById('ctrl-screen').addEventListener('click', async () => {
+        if (!currentCall) return;
+        
+        if (!sharingScreen) {
+            try {
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = screenStream.getVideoTracks()[0];
+                
+                // Swap native tracking on outcoming WebRTC pipe topology
+                const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                if (sender) sender.replaceTrack(screenTrack);
+                
+                document.getElementById('local-video').srcObject = screenStream;
+                document.getElementById('ctrl-screen').innerText = "🛑 Stop Share";
+                sharingScreen = true;
+
+                screenTrack.onended = () => stopScreenSharingProcess();
+            } catch (err) {
+                console.error("Screen transmission failure: ", err);
+            }
+        } else {
+            stopScreenSharingProcess();
+        }
+    });
+
+    function stopScreenSharingProcess() {
+        if (!sharingScreen) return;
+        const videoTrack = localStream.getVideoTracks()[0];
+        const sender = currentCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+        if (sender) sender.replaceTrack(videoTrack);
+        
+        document.getElementById('local-video').srcObject = localStream;
+        document.getElementById('ctrl-screen').innerText = "🖥️ Share Screen";
+        if (screenStream) {
+            screenStream.getTracks().forEach(track => track.stop());
+        }
+        sharingScreen = false;
+    }
+
+    // Hangup/Disjoin Routine
+    document.getElementById('ctrl-hangup').addEventListener('click', () => {
+        hangUpConnection();
+    });
+
+    function hangUpConnection() {
+        if (dataConnection) {
+            dataConnection.send({ type: 'hangup' });
+            dataConnection.close();
+        }
+        if (currentCall) currentCall.close();
+        stopScreenSharingProcess();
+        
+        document.getElementById('remote-video-area').innerHTML = '<div id="remote-placeholder" class="position-absolute top-50 start-50 translate-middle text-muted">No ongoing live feed</div>';
+        toggleControlButtons(false);
+        appendSystemMessage("Connection safely closed.");
+    }
+
+    // --- CHAT LOGIC ENGINE ---
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim();
+        if (!msg || !dataConnection?.open) return;
+
+        dataConnection.send({ type: 'chat', message: msg, sender: currentUsername });
+        renderChatMessage(msg, 'local');
+        input.value = '';
+    });
+
+    function renderChatMessage(text, side) {
+        const container = document.getElementById('chat-messages');
+        const bubble = document.createElement('div');
+        bubble.className = `msg-bubble ${side === 'local' ? 'msg-local' : 'msg-remote'}`;
+        bubble.innerText = text;
+        container.appendChild(bubble);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function appendSystemMessage(text) {
+        const container = document.getElementById('chat-messages');
+        const alertDiv = document.createElement('div');
+        alertDiv.className = "text-center text-muted my-1 small italic";
+        alertDiv.innerText = text;
+        container.appendChild(alertDiv);
+    }
+
+    // --- CANVASES & DRAW TOOLS COLLABORATION ---
+    document.getElementById('tool-draw').addEventListener('click', () => {
+        canvasMode = 'draw';
+        document.getElementById('tool-draw').classList.add('active');
+        document.getElementById('tool-erase').classList.remove('active');
+    });
+
+    document.getElementById('tool-erase').addEventListener('click', () => {
+        canvasMode = 'erase';
+        document.getElementById('tool-erase').classList.add('active');
+        document.getElementById('tool-draw').classList.remove('active');
+    });
+
+    function initCanvas() {
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = canvas.parentElement.offsetWidth; 
+        canvas.height = 320;
+        
+        // Setup initial default vector styles
+        ctx.lineCap = 'round';
+
+        function getDrawBrushSettings(mode) {
+            return {
+                color: mode === 'erase' ? '#ffffff' : '#D4AF37',
+                width: mode === 'erase' ? 24 : 3
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            const settings = getDrawBrushSettings(canvasMode);
+            ctx.strokeStyle = settings.color;
+            ctx.lineWidth = settings.width;
+            
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+            
+            if(dataConnection?.open) {
+                dataConnection.send({ type: 'start', x: e.offsetX, y: e.offsetY, mode: canvasMode });
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            
+            if(dataConnection?.open) {
+                dataConnection.send({ type: 'draw', x: e.offsetX, y: e.offsetY, mode: canvasMode });
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => { drawing = false; });
+        canvas.addEventListener('mouseout', () => { drawing = false; });
+        
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if(dataConnection?.open) dataConnection.send({ type: 'clear' });
+        });
+    }
+
+    // --- DATA CHANNELS SYNCHRONIZATION ---
+    function setupDataListeners(conn) {
+        toggleControlButtons(true);
+        appendSystemMessage(`Connected directly to remote channel data stream.`);
+
+        conn.on('data', (data) => {
+            const canvas = document.getElementById('whiteboard');
+            const ctx = canvas.getContext('2d');
+
+            if (data.type === 'start' || data.type === 'draw') {
+                // Dynamically sync vector brush widths and colors across clients
+                const isEraser = data.mode === 'erase';
+                ctx.strokeStyle = isEraser ? '#ffffff' : '#D4AF37';
+                ctx.lineWidth = isEraser ? 24 : 3;
+                
+                if (data.type === 'start') {
+                    ctx.beginPath();
+                    ctx.moveTo(data.x, data.y);
+                } else {
+                    ctx.lineTo(data.x, data.y);
+                    ctx.stroke();
+                }
+            }
+            else if (data.type === 'clear') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            else if (data.type === 'chat') {
+                renderChatMessage(data.message, 'remote');
+            }
+            else if (data.type === 'hangup') {
+                hangUpConnection();
+            }
+        });
+
+        conn.on('close', () => {
+            appendSystemMessage("Remote participant data stream disconnected.");
+            toggleControlButtons(false);
+        });
+    }
+
+    // --- AV CONNECTION DISPATCHERS ---
+    document.getElementById('btn-connect').addEventListener('click', () => {
+        if (!peer) return alert("Please connect to the live room engine first.");
+        const target = document.getElementById('remote-id').value.trim();
+        if (!target) return alert("Please enter a valid remote target username.");
+        
+        // Setup text/whiteboard streaming layer
+        dataConnection = peer.connect(target);
+        dataConnection.on('open', () => setupDataListeners(dataConnection));
+        
+        // Setup media streaming layer
+        if (localStream) {
+            currentCall = peer.call(target, localStream);
+            handleCallStream(currentCall);
+        } else {
+            appendSystemMessage("Calling with data/text channels only. Activate camera for live video.");
+        }
+    });
+
+    document.getElementById('btn-join').addEventListener('click', async () => {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local-video').srcObject = localStream;
+            document.getElementById('btn-join').className = "btn btn-sm btn-outline-secondary";
+            document.getElementById('btn-join').innerText = "Camera & Audio Active";
+        } catch (err) {
+            console.error(err);
+            alert("Could not access camera/microphone hardware. Check browser security settings.");
+        }
+    });
+
+    function handleCallStream(call) {
+        call.on('stream', (remoteStream) => {
+            const videoArea = document.getElementById('remote-video-area');
+            videoArea.innerHTML = ''; // Safely drop visual layout placeholders
+            
+            const video = document.createElement('video');
+            video.srcObject = remoteStream; 
+            video.autoplay = true;
+            video.playsinline = true;
+            video.style.width = "100%";
+            video.style.minHeight = "350px";
+            video.style.objectFit = "cover";
+            video.style.borderRadius = "10px";
+            
+            videoArea.appendChild(video);
+        });
+    }
+</script>
+{% endblock %}

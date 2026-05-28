@@ -2,17 +2,94 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Divine Digital Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divine Digital Forum - Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #022c22; /* Matching your cyber-emerald theme */
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        nav {
+            background-color: #064e3b;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #d4af37;
+            display: flex;
+            gap: 1.5rem;
+        }
+        nav a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav a:hover {
+            color: #facc15;
+        }
+        /* Styling for the persistent navigation panels */
+        .matrix-panel {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+        .matrix-panel h3 {
+            margin-top: 0;
+            color: #facc15;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+        .matrix-panel a {
+            display: block;
+            color: #38bdf8;
+            text-decoration: none;
+            padding: 0.3rem 0;
+        }
+        .matrix-panel a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+    </style>
 </head>
-<body>
+<body class="flex flex-col min-height-screen">
+
     <nav>
-        <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a> | 
-        <a href="{% url 'worker_dashboard' %}">Worker Dashboard</a>
+        <a href="{% url 'dashboard:admin_dashboard' %}">⚡ Main Terminal</a>
+        <a href="{% url 'dashboard:message_center' %}">✉️ Message Center</a>
     </nav>
-    <hr>
-    
-    {% block content %}
-    <!-- Your page content will appear here -->
-    {% endblock %}
+
+    <div class="container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <main class="lg:col-span-3">
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <aside class="lg:col-span-1 space-y-4">
+            {% if request.user.is_superuser %}
+                <div class="matrix-panel border-red-500/30">
+                    <h3 class="text-red-400 font-bold"><i class="fa-solid fa-shield-halved"></i> Command Center</h3>
+                    <a href="{% url 'dashboard:admin_dashboard' %}">Main Dashboard</a>
+                    <a href="{% url 'dashboard:manage_workers' %}">Manage Workers</a>
+                    <a href="{% url 'dashboard:manage_announcements' %}">Broadcast Announcements</a>
+                    <a href="{% url 'dashboard:create_task' %}">Assign Operations</a>
+                    <a href="{% url 'dashboard:message_center' %}">Global Communications</a>
+                </div>
+            {% endif %}
+
+            <div class="matrix-panel border-sky-500/30">
+                <h3 class="text-sky-400 font-bold"><i class="fa-solid fa-network-wired"></i> Operations Matrix</h3>
+                <a href="{% url 'dashboard:worker_dashboard' %}">My Dashboard</a>
+                <a href="{% url 'dashboard:task_list' %}">My Tasks</a>
+                <a href="{% url 'dashboard:message_center' %}">Secure Communications</a>
+                <a href="{% url 'dashboard:suggestion_box' %}">Suggestion Box</a>
+            </div>
+        </aside>
+    </div>
+
 </body>
 </html>

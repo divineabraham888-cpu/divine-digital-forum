@@ -1,24 +1,16 @@
 import os
-import sys
-
-# --- FORCE VENV PATH INJECTION ---
-venv_site_packages = r'C:\Users\LENOVO\divine-digital-forum\venv\Lib\site-packages'
-if venv_site_packages not in sys.path:
-    sys.path.append(venv_site_packages)
-# ---------------------------------
-
-import django
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-import dashboard.routing
+import your_app_name.routing # Replace with your app name
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
-django.setup()
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project_name.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
-        URLRouter(dashboard.routing.websocket_urlpatterns)
+        URLRouter(
+            your_app_name.routing.websocket_urlpatterns
+        )
     ),
 })

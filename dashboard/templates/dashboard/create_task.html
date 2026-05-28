@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ forum_name }} - Assign Task</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #022c22; color: #e2e8f0; }
+        .bg-panel { background: rgba(6, 78, 59, 0.45); border: 1px solid rgba(212, 175, 55, 0.25); backdrop-filter: blur(8px); }
+        .gold-btn { background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%); color: #022c22; font-weight: bold; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-6 border-b-2 border-amber-500 pb-4">
+            <h1 class="text-3xl font-bold text-amber-400"><i class="fa-solid fa-satellite-dish mr-2"></i> Deploy New Task</h1>
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded font-bold text-white"><i class="fa-solid fa-arrow-left"></i> Command Center</a>
+        </div>
+
+        <div class="bg-panel rounded-xl p-8">
+            <form method="POST" action="{% url 'dashboard:create_task' %}" class="space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-amber-400 font-bold mb-2">Task Title</label>
+                    <input type="text" name="title" required class="w-full bg-teal-950 border border-teal-700 rounded p-3 text-white focus:border-amber-400 focus:outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-amber-400 font-bold mb-2">Assign To Unit</label>
+                    <select name="assigned_to" required class="w-full bg-teal-950 border border-teal-700 rounded p-3 text-white focus:border-amber-400 focus:outline-none">
+                        <option value="">-- Select Worker --</option>
+                        {% for worker in workers %}
+                            <option value="{{ worker.id }}">{{ worker.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-amber-400 font-bold mb-2">Operational Parameters (Description)</label>
+                    <textarea name="description" rows="5" required class="w-full bg-teal-950 border border-teal-700 rounded p-3 text-white focus:border-amber-400 focus:outline-none"></textarea>
+                </div>
+
+                <button type="submit" class="gold-btn w-full py-3 rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:scale-[1.02] transition">
+                    <i class="fa-solid fa-rocket mr-2"></i> Deploy Task to Network
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

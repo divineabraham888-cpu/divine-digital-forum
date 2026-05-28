@@ -1,46 +1,124 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Master Dashboard | Divine Digital Forum</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        :root { --deep-green: #022c22; --gold-main: #D4AF37; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #022c22; color: white; padding: 20px; }
+        .grid-layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; }
+        .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .glass-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; }
+        .search-bar { width: 100%; padding: 12px; background: #064e3b; border: 1px solid var(--gold-main); border-radius: 10px; color: white; margin-bottom: 20px; }
+        .hidden { display: none !important; }
+        .toast-alert { position: fixed; bottom: 20px; right: 20px; background: #991b1b; border: 2px solid #D4AF37; padding: 20px; border-radius: 12px; z-index: 1000; }
+    </style>
+</head>
 <body>
-    <p>You are logged in as: <strong>{{ user.username }}</strong></p>
-    <h1>Welcome, {{ user.username }}</h1>
-    
-    {% if user.is_staff %}
-        <a href="{% url 'worker_dashboard' %}">Go to Admin View</a>
-    {% endif %}
 
-    <h2>My Assigned Tasks</h2>
+<div class="grid-layout">
+    <div class="sidebar">
+        <h2>Divine Forum</h2>
+        <a href="{% url 'dashboard:worker_dashboard' %}" style="display:block; color:white; padding:10px;">Dashboard</a>
+        <a href="{% url 'dashboard:edit_worker_profile' request.user.id %}" style="display:block; color:white; padding:10px;">Profile</a>
+        <a href="{% url 'dashboard:suggestion_box' %}" style="display:block; color:white; padding:10px;">Suggestions</a>
+    </div>
 
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-            <tr>
-                <td>{{ task.title }}</td>
-                <td>{{ task.description }}</td>
-                <td>{{ task.status }}</td>
-                <td>
-                    <!-- Form for completing the task -->
-                    <form action="{% url 'complete_task' task.id %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit">Mark Completed</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">No tasks assigned to you yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div>
+        <input type="text" class="search-bar" placeholder="🔍 Search everything...">
+        
+        <div class="bento-grid">
+            <div class="glass-card"><h3>Identity</h3><p>{{ user_details.username }}</p></div>
+            <div class="glass-card"><h3>AI Status</h3><p id="ai-status">{{ ai_health }}</p></div>
+            <div class="glass-card"><h3>Efficiency</h3><p>{{ metrics.score }}%</p></div>
+
+            <div class="glass-card" style="grid-column: span 3;">
+                <h3>Communication Hub</h3>
+                <div id="lobby-screen"><button id="btn-start-session" style="background:var(--gold-main); border:none; padding:10px; cursor:pointer;">Connect</button></div>
+                <div id="active-communication-room" class="hidden"><div id="video-area" style="background:#000; height:150px;"></div></div>
+            </div>
+
+            <div class="glass-card"><h3>Tasks</h3><ul>{% for t in tasks %}<li>{{ t.title }}</li>{% endfor %}</ul></div>
+            <div class="glass-card"><h3>Support</h3><ul>{% for t in tickets %}<li>{{ t.title }}</li>{% endfor %}</ul></div>
+            <div class="glass-card"><h3>Submissions</h3><ul>{% for s in submissions %}<li>{{ s.title }}</li>{% endfor %}</ul></div>
+
+            <div class="glass-card" style="grid-column: span 3;">
+                <h3>Activity Logs</h3>
+                {% for log in activities %}<p>{{ log.timestamp }} - {{ log.action }}</p>{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ai-alert" class="toast-alert hidden">
+    <h3>⚠️ Efficiency Alert</h3>
+    <p>AI detected a drop in performance.</p>
+</div>
+
+<script>
+    // Logic for PeerJS and AI Alert remains active here...
+    document.getElementById('btn-start-session').addEventListener('click', () => {
+        // PeerJS code
+    });
+</script>
 </body>
 </html>
-<h1>Worker Dashboard</h1>
-<p>Welcome Worker</p>
+<script>
+    // ==========================================
+    // 1. PEER.JS COMMUNICATION HUB
+    // ==========================================
+    document.getElementById('btn-start-session').addEventListener('click', () => {
+        // Initializes connection to your local PeerServer
+        const peer = new Peer("{{ request.user.username }}", { host: 'localhost', port: 9000, path: '/' });
+        
+        peer.on('open', (id) => {
+            console.log('Connected to Hub with ID: ' + id);
+            document.getElementById('lobby-screen').classList.add('hidden');
+            document.getElementById('active-communication-room').classList.remove('hidden');
+            
+            // You can add your video stream logic here later
+            document.getElementById('video-area').innerHTML = "<p style='color:white; padding:20px;'>Live Connection Established. Awaiting Peers...</p>";
+        });
+
+        peer.on('error', (err) => {
+            console.error("PeerJS Error:", err);
+            alert("Connection failed. Please ensure the local PeerServer is running on port 9000.");
+        });
+    });
+
+    // ==========================================
+    // 2. LIVE AI EFFICIENCY MONITORING
+    // ==========================================
+    // This runs every 30 seconds (30000 milliseconds)
+    setInterval(() => {
+        // NOTE: Ensure your urls.py has: path('check-efficiency/', views.check_efficiency_api, name='check_efficiency')
+        fetch("{% url 'dashboard:check_efficiency' %}")
+            .then(response => response.json())
+            .then(data => {
+                const alertBox = document.getElementById('ai-alert');
+                const aiStatus = document.getElementById('ai-status');
+                
+                // If performance drops below 70%, trigger the global alert
+                if (data.score < 70) {
+                    alertBox.classList.remove('hidden');
+                    aiStatus.innerText = "Warning";
+                    aiStatus.style.color = "#ff4444";
+                } else {
+                    alertBox.classList.add('hidden');
+                    aiStatus.innerText = "Optimal";
+                    aiStatus.style.color = "white";
+                }
+            })
+            .catch(error => console.error('AI Monitor Sync Error:', error));
+    }, 30000); 
+</script>
+{% for broadcast in broadcasts %}
+    <div class="alert alert-info">
+        <strong>{{ broadcast.title }}</strong>
+        <p>{{ broadcast.message }}</p>
+    </div>
+{% empty %}
+    <p>No new announcements.</p>
+{% endfor %}

@@ -1,27 +1,18 @@
 from pathlib import Path
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-m=o_mbc0fsd6pqzu4d6f%psft38^y-r7--h##m2=_razd6#7&u'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
-# APPLICATIONS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-    # Custom apps
+    'django.contrib.staticfiles', # Essential for static files
     'accounts',
     'dashboard',
 ]
@@ -37,8 +28,22 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+WSGI_APPLICATION = 'core.wsgi.application'
 
-# TEMPLATES
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Auth Settings
+LOGIN_URL = 'dashboard:auth'
+LOGIN_REDIRECT_URL = 'dashboard:admin_dashboard'
+LOGOUT_REDIRECT_URL = 'dashboard:auth'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -55,49 +60,21 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = 'core.asgi.application'
+# --- STATIC FILES CONFIGURATION ---
+# This is the "Base URL" for static files (e.g., /static/image.jpg)
+STATIC_URL = '/static/'
 
-# DATABASE
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-# CHANNEL LAYERS
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
-
-# AUTHENTICATION
-AUTH_USER_MODEL = 'accounts.CustomUser'
-
-LOGIN_URL = '/accounts/login/'
-
-# PASSWORD VALIDATION
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+# This tells Django where to find your static folder on your computer
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
 ]
 
-# INTERNATIONALIZATION
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
+# This is where Django puts static files during deployment (for later)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# ----------------------------------
 
-# STATIC FILES
-STATIC_URL = 'static/'
-
-# MEDIA FILES
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# DEFAULT PRIMARY KEY
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# In settings.py
+ASGI_APPLICATION = 'your_project_name.asgi.application'

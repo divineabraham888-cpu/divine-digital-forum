@@ -1,0 +1,33 @@
+{% extends 'main_base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10">
+    <div class="bg-slate-900/90 p-8 rounded-lg border border-amber-500 shadow-2xl">
+        <div class="flex justify-between items-center mb-6 border-b border-amber-500 pb-4">
+            <h2 class="text-2xl font-bold text-amber-400">
+                <i class="fa-solid fa-user-pen mr-2"></i> Edit Unit Profile: {{ worker.username }}
+            </h2>
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="text-slate-400 hover:text-white transition">Back</a>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sky-400 font-bold mb-2">Access Level</label>
+                <select name="access_level" class="w-full bg-slate-800 border border-slate-600 text-white p-3 rounded focus:border-amber-400 focus:outline-none">
+                    <option value="Standard Worker" {% if worker.worker_profile.access_level == 'Standard Worker' %}selected{% endif %}>Standard Worker</option>
+                    <option value="Senior Worker" {% if worker.worker_profile.access_level == 'Senior Worker' %}selected{% endif %}>Senior Worker</option>
+                    <option value="Supervisor" {% if worker.worker_profile.access_level == 'Supervisor' %}selected{% endif %}>Supervisor</option>
+                </select>
+            </div>
+
+            <div class="pt-4 mt-6 border-t border-slate-700">
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-teal-900 font-bold py-3 px-4 rounded transition">
+                    Update Unit Parameters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

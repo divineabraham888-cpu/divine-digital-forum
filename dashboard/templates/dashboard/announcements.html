@@ -1,323 +1,55 @@
 {% extends 'main_base.html' %}
 
 {% block content %}
-
-<style>
-    :root {
-        --primary-green: #0A5C36;
-        --secondary-green: #147a4a;
-        --gold: #D4AF37;
-        --light-gold: #f9f1d8;
-        --bg-light: #f4f7f5;
-        --text-dark: #333;
-    }
-
-    body {
-        margin: 0;
-        background-color: var(--bg-light);
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    .dashboard-wrapper {
-        display: flex;
-        min-height: 100vh;
-    }
-
-    .sidebar {
-        width: 250px;
-        background-color: var(--primary-green);
-        display: flex;
-        flex-direction: column;
-        padding-top: 20px;
-    }
-
-    .brand {
-        text-align: center;
-        padding: 0 15px 20px 15px;
-        border-bottom: 2px solid var(--gold);
-        margin-bottom: 20px;
-    }
-
-    .brand h2 {
-        color: var(--gold);
-        font-size: 1.2rem;
-        margin: 0;
-        text-transform: uppercase;
-    }
-
-    .menu-item {
-        padding: 15px 20px;
-        color: white;
-        text-decoration: none;
-        font-weight: 500;
-        border-left: 4px solid transparent;
-        transition: 0.3s;
-        display: block;
-    }
-
-    .menu-item:hover,
-    .menu-item.active {
-        background-color: var(--secondary-green);
-        border-left: 4px solid var(--gold);
-        color: var(--gold);
-    }
-
-    .main-content {
-        flex: 1;
-        padding: 30px;
-    }
-
-    .grid-container {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-
-    .column {
-        flex: 1;
-        min-width: 300px;
-    }
-
-    .card {
-        background: white;
-        border-top: 4px solid var(--gold);
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-
-    .card h3 {
-        color: var(--primary-green);
-        margin-top: 0;
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: bold;
-        color: var(--primary-green);
-        margin-bottom: 5px;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-    }
-
-    .btn-gold {
-        background-color: var(--gold);
-        color: var(--primary-green);
-        border: none;
-        padding: 10px 15px;
-        font-weight: bold;
-        cursor: pointer;
-        border-radius: 4px;
-        width: 100%;
-    }
-
-    .btn-gold:hover {
-        background-color: #c19b2e;
-    }
-
-    .announcement-item {
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 4px;
-        border-left: 5px solid #ccc;
-        background: #fdfdfd;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: bold;
-        color: white;
-        margin-bottom: 10px;
-    }
-
-    .badge.high {
-        background-color: #dc3545;
-    }
-
-    .badge.medium {
-        background-color: var(--gold);
-        color: var(--primary-green);
-    }
-
-    .badge.low {
-        background-color: var(--primary-green);
-    }
-
-</style>
-
-<div class="dashboard-wrapper">
-
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-
-        <div class="brand">
-            <h2>DIVINE DIGITAL FORUM 🛡️</h2>
-        </div>
-
-        <a href="{% url 'dashboard:admin_dashboard' %}"
-           class="menu-item">
-            📊 Dashboard Home
-        </a>
-
-        <a href="{% url 'dashboard:manage_workers' %}"
-           class="menu-item">
-            👥 Manage Workers
-        </a>
-
-        <a href="{% url 'dashboard:manage_announcements' %}"
-           class="menu-item active">
-            📢 Announcements
-        </a>
-
-        <a href="{% url 'dashboard:message_center' %}"
-           class="menu-item">
-            💬 Message Center
-        </a>
-
-        <a href="{% url 'dashboard:suggestion_box' %}"
-           class="menu-item">
-            💡 Suggestions
-        </a>
-
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-
-        <h2 style="color: var(--primary-green);">
-            Announcements & Timetable
-        </h2>
-
-        <div class="grid-container">
-
-            <!-- LEFT COLUMN -->
-            <div class="column">
-
-                <div class="card">
-
-                    <h3>
-                        Broadcast Announcement
-                    </h3>
-
-                    <form action="#"
-                          method="POST">
-
-                        {% csrf_token %}
-
-                        <div class="form-group">
-
-                            <label>Title</label>
-
-                            <input type="text"
-                                   name="title"
-                                   required>
-
-                        </div>
-
-                        <div class="form-group">
-
-                            <label>Priority</label>
-
-                            <select name="priority">
-
-                                <option value="Low">
-                                    Low
-                                </option>
-
-                                <option value="Medium">
-                                    Medium
-                                </option>
-
-                                <option value="High">
-                                    High
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                        <div class="form-group">
-
-                            <label>Message</label>
-
-                            <textarea name="message"
-                                      rows="4"></textarea>
-
-                        </div>
-
-                        <button type="submit"
-                                class="btn-gold">
-                            🚀 Send Broadcast
-                        </button>
-
-                    </form>
-
-                </div>
-
+<div class="container mt-4">
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        {% endfor %}
+    {% endif %}
 
-            <!-- RIGHT COLUMN -->
-            <div class="column">
-
-                <div class="card">
-
-                    <h3>
-                        Recent Announcements
-                    </h3>
-
-                    {% for announcement in announcements %}
-
-                    <div class="announcement-item">
-
-                        <span class="badge {{ announcement.priority|lower }}">
-
-                            {{ announcement.priority }}
-
-                        </span>
-
-                        <h4>
-                            {{ announcement.title }}
-                        </h4>
-
-                        <p>
-                            {{ announcement.message }}
-                        </p>
-
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card p-4 shadow-sm border-0 bg-light">
+                <h4>Broadcast Update</h4>
+                <p class="small text-muted">Deploys notice announcements right onto the worker control decks.</p>
+                <hr>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Heading Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g., Scheduled Maintenance" required>
                     </div>
-
-                    {% empty %}
-
-                    <p>
-                        No announcements available.
-                    </p>
-
-                    {% endfor %}
-
-                </div>
-
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Content Details</label>
+                        <textarea name="message" class="form-control" rows="4" placeholder="Type instructions clearly here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Launch Announcement</button>
+                </form>
             </div>
-
         </div>
 
+        <div class="col-md-7">
+            <div class="card p-4 shadow-sm">
+                <h4 class="mb-3">Sent Broadcast History</h4>
+                <div class="d-flex flex-column gap-3">
+                    {% for announcement in announcements %}
+                        <div class="border rounded p-3 bg-white shadow-xs">
+                            <h5 class="text-primary mb-1">{{ announcement.title }}</h5>
+                            <p class="mb-1 text-dark small">{{ announcement.message }}</p>
+                            <small class="text-muted d-block mt-2">
+                                Published: {{ announcement.created_at|date:"M d, Y - H:i" }}
+                            </small>
+                        </div>
+                    {% empty %}
+                        <div class="text-center p-4 text-muted border border-dashed rounded">No system announcements deployed yet.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
-
 </div>
-
 {% endblock %}
