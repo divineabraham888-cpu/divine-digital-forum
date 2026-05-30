@@ -50,3 +50,14 @@
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Transmitting...';
     });
 </script>
+<script>
+    document.querySelector('form').addEventListener('submit', function() {
+        const btn = document.querySelector('button[type="submit"]');
+        
+        // Add a tiny delay so the browser can fire off the data BEFORE disabling
+        setTimeout(function() {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Transmitting...';
+        }, 50);
+    });
+</script>
