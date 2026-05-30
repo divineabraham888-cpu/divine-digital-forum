@@ -104,11 +104,17 @@
     <script>
         const targetUserId = "{{ target_worker.id|default:'0' }}";
         const currentUsername = "{{ request.user.username }}";
-        let lastMessageId = 0;
+        
+        // Use timestamp instead of ID to track new messages
+        let lastTimestamp = "1970-01-01";
+        let isFirstLoad = true;
+        
         let localStream;
         let isMuted = false;
 
-        // Whiteboard Logic
+        // ==========================================
+        // 1. WHITEBOARD LOGIC
+        // ==========================================
         const canvas = document.getElementById('whiteboard');
         const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorPicker');
@@ -136,7 +142,9 @@
             ctx.moveTo(e.offsetX, e.offsetY);
         });
 
-        // Chat UI
+        // ==========================================
+        // 2. CHAT UI & MESSAGING
+        // ==========================================
         function appendMessage(sender, content, isLocal = false) {
             const chatBox = document.getElementById('chat-box');
             const msgDiv = document.createElement('div');
@@ -156,12 +164,17 @@
             const content = input.value.trim();
             if (!content) return;
             
+            // Show it on your screen immediately
             appendMessage(currentUsername, content, true);
             input.value = '';
             
+            // Send to server quietly
             await fetch(`/dashboard/api/messages/send/${targetUserId}/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded', 
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value 
+                },
                 body: new URLSearchParams({ 'content': content })
             });
         });
@@ -170,17 +183,27 @@
             try {
                 const res = await fetch(`/dashboard/api/messages/fetch/${targetUserId}/`);
                 const data = await res.json();
+                
                 data.forEach(msg => {
-                    if (msg.id > lastMessageId) {
-                        lastMessageId = msg.id;
-                        if (msg.sender__username !== currentUsername) {
-                            appendMessage(msg.sender__username, msg.content, false);
+                    // Check if the message is newer than the last one we saw
+                    if (msg.timestamp > lastTimestamp) {
+                        lastTimestamp = msg.timestamp;
+                        
+                        // First load: dump entire history on screen.
+                        // Polling updates: only show OTHER people's messages to avoid duplicates of your own typing.
+                        if (isFirstLoad || msg.sender__username !== currentUsername) {
+                            const isMe = msg.sender__username === currentUsername;
+                            appendMessage(msg.sender__username, msg.content, isMe);
                         }
                     }
                 });
+                isFirstLoad = false;
             } catch (e) { console.warn("Polling paused."); }
         }
 
+        // ==========================================
+        // 3. MEDIA & WORKSPACE CONTROLS
+        // ==========================================
         async function startMedia(type) {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ video: type === 'video', audio: true });
@@ -212,14 +235,13 @@
             document.getElementById('text-chat-panel').classList.toggle('hidden');
             document.getElementById('live-workspace-panel').classList.toggle('hidden');
             
-            // Fix: Re-initialize whiteboard when workspace becomes visible
             if (!document.getElementById('live-workspace-panel').classList.contains('hidden')) {
                 resizeCanvas();
             }
         }
 
+        // Run the fetch every 2.5 seconds
         setInterval(fetchMessages, 2500);
+        // Trigger immediately on load
         fetchMessages();
     </script>
-</body>
-</html>
