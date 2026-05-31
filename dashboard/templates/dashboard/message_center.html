@@ -149,14 +149,15 @@
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // --- GLOBAL CHAT LOGIC ---
+    // --- GLOBAL CHAT LOGIC (FIXED) ---
     async function loadGlobalMessages() {
         try {
             const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
             const data = await res.json();
             
-            // Fixes disappearing text: Only update DOM if new messages arrive
-            if (data.length !== lastMessageCount) {
+            // SECURITY CHECK: Only update the box if the server ACTUALLY sends us messages. 
+            // If it sends an empty list, we ignore it so your chat history doesn't wipe!
+            if (data && data.length > 0 && data.length !== lastMessageCount) {
                 const box = document.getElementById('global-chat-box');
                 box.innerHTML = data.map(m => `
                     <div class="mb-2 p-2 rounded chat-msg">
@@ -165,13 +166,41 @@
                     </div>
                 `).join('');
                 
-                if (data.length > lastMessageCount) {
-                    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
-                }
+                box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
                 lastMessageCount = data.length;
             }
         } catch(e) { console.error("Load Error:", e); }
     }
+
+    async function sendGlobalMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('global-chat-input');
+        const messageText = input.value;
+        const box = document.getElementById('global-chat-box');
+
+        // 1. INSTANT APPEND: Put the message on the screen immediately so it never disappears
+        const msgElement = document.createElement('div');
+        msgElement.className = "mb-2 p-2 rounded chat-msg";
+        msgElement.innerHTML = `<strong style="color: #0d3b1f;">You:</strong> <span class="ms-1" style="color: #0d3b1f;">${messageText}</span>`;
+        box.appendChild(msgElement);
+        box.scrollTop = box.scrollHeight; // Scroll to see the new message
+
+        // 2. Send it silently to the server in the background
+        const fd = new FormData();
+        fd.append('content', messageText);
+        fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        input.value = ''; // Clear the input box instantly
+
+        try {
+            await fetch("{% url 'dashboard:send_message' 0 %}", { method: 'POST', body: fd });
+        } catch(error) {
+            console.error("Message failed to send to server:", error);
+        }
+    }
+    
+    // Check the server every 3 seconds
+    setInterval(loadGlobalMessages, 3000);
 
     async function sendGlobalMessage(e) {
         e.preventDefault();
