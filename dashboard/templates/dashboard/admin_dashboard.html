@@ -2,19 +2,15 @@
 
 {% block content %}
 <style>
-    /* CSS moved inside for easy management. Ideally, move this to a .css file */
     :root {
         --cyber-emerald-dark: #022c22;
         --cyber-emerald-mid: #064e3b;
         --solid-gold: #d4af37;
-        --neon-gold-glow: 0 0 15px rgba(212, 175, 55, 0.4);
     }
     body { background-color: #022c22; color: #e2e8f0; font-family: 'Inter', sans-serif; }
     .dashboard-card { background: rgba(6, 78, 59, 0.45); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; }
     .forum-navbar { background: linear-gradient(90deg, var(--cyber-emerald-mid), var(--cyber-emerald-dark)); border-bottom: 2px solid var(--solid-gold); padding: 1rem 2rem; }
     .portal-link-btn { background: #d4af37; color: #022c22; font-weight: 700; padding: 0.6rem 1.2rem; border-radius: 6px; text-decoration: none; }
-    
-    /* Online Pulse Animation */
     .pulse-online { display: inline-block; width: 10px; height: 10px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); animation: pulse 2s infinite; }
     @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 </style>
@@ -27,23 +23,19 @@
             <h1 class="text-xl font-bold uppercase tracking-wider text-white">GOD MODE TERMINAL v2.0</h1>
         </div>
         <div class="flex items-center space-x-4">
-            {% if user.is_superuser %}
-                <a href="{% url 'dashboard:worker_dashboard' %}" class="portal-link-btn">Simulate Worker Panel</a>
-            {% else %}
-                <a href="{% url 'dashboard:admin_dashboard' %}" class="portal-link-btn bg-red-600">Command Terminal</a>
-            {% endif %}
+            <a href="{% url 'dashboard:worker_dashboard' %}" class="portal-link-btn">Simulate Worker Panel</a>
         </div>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <a href="{% url 'dashboard:message_center' %}" class="dashboard-card p-6 border-2 border-amber-500/50">
+        <a href="{% url 'dashboard:message_center' %}" class="dashboard-card p-6 border-2 border-amber-500/50 hover:bg-emerald-900 transition">
             <h3 class="font-bold text-white">Communications</h3>
             <p class="text-xs text-teal-300">Access Global Grid</p>
         </a>
-        <a href="{% if user.is_superuser %}{% url 'dashboard:create_task' %}{% else %}{% url 'dashboard:task_list' %}{% endif %}" class="dashboard-card p-6 border-2 border-green-500/50">
+        <a href="{% if user.is_superuser %}{% url 'dashboard:create_task' %}{% else %}{% url 'dashboard:task_list' %}{% endif %}" class="dashboard-card p-6 border-2 border-green-500/50 hover:bg-emerald-900 transition">
             <h3 class="font-bold text-white">{% if user.is_superuser %}Deploy Task{% else %}My Tasks{% endif %}</h3>
         </a>
-        <a href="{% if user.is_superuser %}{% url 'dashboard:manage_workers' %}{% else %}{% url 'dashboard:suggestion_box' %}{% endif %}" class="dashboard-card p-6 border-2 border-blue-500/50">
+        <a href="{% if user.is_superuser %}{% url 'dashboard:manage_workers' %}{% else %}{% url 'dashboard:suggestion_box' %}{% endif %}" class="dashboard-card p-6 border-2 border-blue-500/50 hover:bg-emerald-900 transition">
             <h3 class="font-bold text-white">{% if user.is_superuser %}Manage Units{% else %}Suggestion Box{% endif %}</h3>
         </a>
     </div>
@@ -68,8 +60,8 @@
                         {% else %} <span class="text-green-500">ACTIVE</span> {% endif %}
                     </td>
                     <td class="p-2 text-right">
-                        <a href="{% url 'dashboard:manage_worker' w.id 'suspend' %}" class="text-amber-400 text-xs">[Suspend]</a>
-                        <a href="{% url 'dashboard:manage_worker' w.id 'block' %}" class="text-red-400 text-xs">[Lockdown]</a>
+                        <a href="{% url 'dashboard:manage_worker' w.id 'suspend' %}" class="text-amber-400 text-xs hover:underline">[Suspend]</a>
+                        <a href="{% url 'dashboard:manage_worker' w.id 'block' %}" class="text-red-400 text-xs hover:underline">[Lockdown]</a>
                     </td>
                 </tr>
                 {% empty %}
@@ -79,43 +71,31 @@
         </table>
     </div>
 
-    <a href="{% url 'dashboard:manage_announcements' %}" class="dashboard-card p-6 border-2 border-purple-500/50 block mb-8">
-        <h3 class="font-bold text-white">Broadcast System</h3>
-        <p class="text-xs text-purple-300">Manage Global Announcements</p>
-    </a>
-
     <div class="dashboard-card p-6 mb-8">
         <h3 class="text-sky-400 mb-4 font-bold">📢 Broadcast Control Center</h3>
-        
-        <form method="POST" style="margin-bottom: 20px; display: grid; gap: 10px;">
+        <form method="POST" class="grid gap-4 mb-8">
             {% csrf_token %}
-            <input type="text" name="title" placeholder="Broadcast Title" required 
-                   style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; color: #333;">
-            <textarea name="message" placeholder="Type your announcement here..." required
-                      style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; height: 80px; color: #333;"></textarea>
-            <button type="submit" name="broadcast_submit" class="bg-amber-500 hover:bg-amber-400 text-teal-900 font-bold py-2 px-4 rounded transition">
-                Publish Broadcast
-            </button>
+            <input type="text" name="title" placeholder="Broadcast Title" required class="p-3 rounded-lg border border-slate-600 bg-slate-800 text-white">
+            <textarea name="message" placeholder="Type your announcement here..." required class="p-3 rounded-lg border border-slate-600 bg-slate-800 text-white h-24"></textarea>
+            <button type="submit" name="broadcast_submit" class="bg-amber-500 hover:bg-amber-400 text-teal-900 font-bold py-2 px-4 rounded transition">Publish Broadcast</button>
         </form>
 
-        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <table class="w-full border-collapse">
             <thead>
-                <tr style="border-bottom: 2px solid #064e3b; color: #38bdf8;">
-                    <th style="padding: 10px; text-align: left;">Title</th>
-                    <th style="padding: 10px; text-align: left;">Action</th>
+                <tr class="border-b-2 border-emerald-900 text-sky-400">
+                    <th class="p-2 text-left">Title</th>
+                    <th class="p-2 text-left">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for b in broadcasts %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding: 10px; color: #e2e8f0;">{{ b.title }}</td>
-                    <td style="padding: 10px;">
+                <tr class="border-b border-slate-700">
+                    <td class="p-2 text-gray-200">{{ b.title }}</td>
+                    <td class="p-2">
                         <form method="POST">
                             {% csrf_token %}
                             <input type="hidden" name="broadcast_id" value="{{ b.id }}">
-                            <button type="submit" name="delete_broadcast" class="bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-3 rounded text-xs transition">
-                                Delete
-                            </button>
+                            <button type="submit" name="delete_broadcast" class="bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-3 rounded text-xs transition">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -124,54 +104,5 @@
         </table>
     </div>
 
-    <div class="dashboard-card p-6">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 class="text-sky-400 font-bold mb-0">👁️ Worker Control Tower</h3>
-            <span style="font-size: 12px; color: #94a3b8;">Real-time Monitoring</span>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr style="border-bottom: 2px solid #064e3b; color: #38bdf8;">
-                    <th style="padding: 12px;">Worker</th>
-                    <th style="padding: 12px;">Current Location</th>
-                    <th style="padding: 12px;">Status</th>
-                    <th style="padding: 12px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for activity in worker_activities %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding: 12px; font-weight: 600; color: #e2e8f0;">{{ activity.user.username }}</td>
-                    <td style="padding: 12px; font-size: 14px; color: #cbd5e1;">{{ activity.current_page }}</td>
-                    <td style="padding: 12px;">
-                        {% if activity.is_online %}
-                            <span class="pulse-online"></span> <span style="color: #10b981; font-size: 12px; font-weight: 700;">LIVE</span>
-                        {% else %}
-                            <span style="color: #9ca3af; font-size: 12px;">Offline</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 12px;">
-                        <a href="#" style="color: var(--solid-gold); text-decoration: none; font-size: 12px; font-weight: 700;">Review Log</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" style="padding: 20px; text-align: center; color: #94a3b8;">No activity to report.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
 </div>
 {% endblock %}
-<form method="POST" style="margin-bottom: 20px; display: grid; gap: 10px;">
-    {% csrf_token %}
-    <input type="text" name="title" placeholder="Broadcast Title" required 
-           style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; color: #333;">
-    <textarea name="message" placeholder="Type your announcement here..." required
-              style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; height: 80px; color: #333;"></textarea>
-    
-    <button type="submit" name="broadcast_submit" class="bg-amber-500 hover:bg-amber-400 text-teal-900 font-bold py-2 px-4 rounded transition">
-        Publish Broadcast
-    </button>
-</form>
