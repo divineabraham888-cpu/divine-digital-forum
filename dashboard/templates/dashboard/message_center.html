@@ -22,7 +22,6 @@
         <h4 class="text-warning mb-4 fw-bold">🌐 GENERAL HQ</h4>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('chat')">💬 Global Chat</button>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('meeting')">👥 Mass Meeting</button>
-        <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('board')">🎨 Teaching Board</button>
         <div class="mt-auto p-2 border border-warning rounded bg-black">
             <small class="text-warning d-block">Network Status:</small>
             <span id="hub-status" class="text-white small fw-bold">Ready</span>
@@ -64,7 +63,6 @@
 </div>
 
 <script>
-    // Global State
     let hubPeer, hubStream;
     let activeConnections = {};
     let lastMessageCount = 0;
@@ -74,21 +72,17 @@
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // Chat Logic
     async function loadGlobalMessages() {
         try {
             const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
             const data = await res.json();
             if (data.length > 0 && data.length !== lastMessageCount) {
                 const box = document.getElementById('global-chat-box');
-                box.innerHTML = data.map(m => `
-                    <div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05)">
-                        <b style="color: #d4af37;">${m.sender__username}:</b> ${m.content}
-                    </div>`).join('');
+                box.innerHTML = data.map(m => `<div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05)"><b style="color: #d4af37;">${m.sender__username}:</b> ${m.content}</div>`).join('');
                 box.scrollTop = box.scrollHeight;
                 lastMessageCount = data.length;
             }
-        } catch(e) {}
+        } catch(e) { console.error("Load Error:", e); }
     }
 
     async function sendGlobalMessage(e) {
@@ -104,7 +98,6 @@
     
     setInterval(loadGlobalMessages, 3000);
 
-    // P2P Logic
     async function joinGeneralMeeting() {
         const statusEl = document.getElementById('hub-status');
         try {
@@ -113,13 +106,14 @@
             document.getElementById('local-stream-container').style.display = 'block';
             
             hubPeer = new Peer("divine_master_" + "{{ request.user.id }}", {
-                host: 'peerjs.com', port: 443, secure: true
+                host: '0.peerjs.com',
+                port: 443,
+                secure: true,
+                debug: 3
             });
 
-            hubPeer.on('open', (id) => {
-                statusEl.innerText = "🟢 Online: " + id;
-            });
-
+            hubPeer.on('open', (id) => { statusEl.innerText = "🟢 Online: " + id; });
+            hubPeer.on('error', (err) => { console.error("PeerJS:", err); statusEl.innerText = "🔴 Error"; });
             hubPeer.on('call', call => {
                 call.answer(hubStream);
                 call.on('stream', stream => renderRemoteVideo(call.peer, stream));
@@ -145,13 +139,12 @@
 
     function renderRemoteVideo(peerId, stream) {
         if(document.getElementById('vid_' + peerId)) return;
-        const grid = document.getElementById('video-grid');
         const v = document.createElement('video');
         v.id = 'vid_' + peerId;
         v.autoplay = true; v.playsInline = true;
         v.className = "col-4 border border-info m-2";
         v.srcObject = stream;
-        grid.appendChild(v);
+        document.getElementById('video-grid').appendChild(v);
     }
 </script>
 {% endblock %}
