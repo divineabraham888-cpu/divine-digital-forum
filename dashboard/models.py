@@ -108,14 +108,14 @@ class SupportTicket(models.Model):
 
 class ChatMessage(models.Model):
     sender = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
+    # Add null=True and blank=True here:
+    receiver = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name='received_messages', null=True, blank=True)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver}"
-
 class SystemBroadcast(models.Model):
     title = models.CharField(max_length=200)
     message = models.TextField()

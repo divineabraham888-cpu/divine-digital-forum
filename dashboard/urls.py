@@ -7,7 +7,7 @@ urlpatterns = [
     # --- Video Call ---
     path('call/<str:room_name>/', views.video_call_room, name='video_call'),
 
-    # --- Authentication (CRITICAL FIX FOR THE 500 ERROR) ---
+    # --- Authentication ---
     path('login/', views.auth, name='auth'),
 
     # --- Dashboards ---
@@ -28,10 +28,10 @@ urlpatterns = [
     # --- Performance & Metrics ---
     path('check-efficiency/', views.check_efficiency_api, name='check_efficiency'),
     
-    # --- Communications & Old Messaging ---
+    # --- Communications ---
     path('suggestion-box/', views.suggestion_box, name='suggestion_box'),
     path('manage-announcements/', views.manage_announcements, name='manage_announcements'),
-    path('message-center/', views.message_center, name='old_message_center'),
+    path('message-center/', views.message_center_view, name='old_message_center'),
     path('message-center/<int:worker_id>/', views.message_center_with_worker, name='message_center_with_worker'),
     
     # --- Async API Endpoints ---
@@ -43,8 +43,8 @@ urlpatterns = [
     path('settings/', views.settings_view, name='settings_view'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard_view'),
     
-    # --- NEW P2P AND MODERN COMMAND CENTER ---
+    # --- Modern Views ---
     path('p2p/', views.p2p_view, name='p2p_hub'),
     path('messages/', views.message_center_view, name='message_center'),
-    path('general-hub/', views.general_hub_view, name='general_hub'),  # <-- ADD THIS RIGHT HERE
+    path('general-hub/', views.general_hub_view, name='general_hub'),
 ]

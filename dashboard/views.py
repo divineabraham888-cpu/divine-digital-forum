@@ -3,15 +3,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q, Avg
+from django.db.models import Q
 from django.db import transaction
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.text import slugify
 
-# Imports
+# Imports from models
 from .models import (
-    ActivityLog, PerformanceMetric, GlobalAnnouncement, WorkerProfile, 
+    ActivityLog, PerformanceMetric, WorkerProfile, 
     SupportTicket, Task, ChatMessage, SystemBroadcast, WorkerActivity,
     WorkSubmission, Suggestion
 )
@@ -179,57 +179,52 @@ def submit_task(request, task_id):
 # ==========================================
 # 4. SUBMISSIONS & COMMUNICATIONS
 # ==========================================
-
-@login_required
-def submissions_dashboard(request):
-    return render(request, 'dashboard/submissions_dashboard.html', {
-        'submissions': WorkSubmission.objects.all().order_by('-submitted_at'),
-    })
-
-@login_required
-def message_center(request):
-    return render(request, 'dashboard/message_center.html', {
-        'contacts': User.objects.exclude(id=request.user.id),
-        'room_name': "sync_global_channel" 
-    })
-
-@login_required
-def message_center_with_worker(request, worker_id):
-    target_worker = get_object_or_404(User, id=worker_id)
-    sorted_ids = sorted([request.user.id, target_worker.id])
-    return render(request, 'dashboard/message_center.html', {
-        'target_worker': target_worker, 
-        'room_name': f"sync_{sorted_ids[0]}_{sorted_ids[1]}"
-    })
+import json # Ensure this is at the top of your file
 
 @login_required
 def send_message(request, user_id):
     if request.method == 'POST':
-        ChatMessage.objects.create(
-            sender=request.user,
-            receiver=None if int(user_id) == 0 else get_object_or_404(User, id=user_id),
-            content=request.POST.get('content')
-        )
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'}, status=400)
+        try:
+            # TRY TO LOAD JSON FIRST
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+        except json.JSONDecodeError:
+            # FALLBACK TO POST IF JSON FAILS
+            content = request.POST.get('content', '').strip()
+            
+        if not content:
+            return JsonResponse({'status': 'error', 'message': 'Empty message'}, status=400)
+        
+        try:
+            receiver = None
+            if int(user_id) != 0:
+                receiver = User.objects.get(id=user_id)
+            ChatMessage.objects.create(sender=request.user, receiver=receiver, content=content)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            # THIS WILL RETURN THE ACTUAL ERROR TO YOUR BROWSER
+            return JsonResponse({'status': 'error', 'message': f'Server Error: {str(e)}'}, status=500)
+            
+    return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
 
 @login_required
 def fetch_messages(request, user_id):
-    if int(user_id) == 0:
-        messages_qs = ChatMessage.objects.filter(receiver__isnull=True).order_by('timestamp')
-    else:
-        target_user = get_object_or_404(User, id=user_id)
-        messages_qs = ChatMessage.objects.filter(
-            (Q(sender=request.user) & Q(receiver=target_user)) |
-            (Q(sender=target_user) & Q(receiver=request.user))
-        ).order_by('timestamp')
-    
-    data = [{
-        'sender__username': m.sender.username,
-        'content': m.content,
-        'timestamp': m.timestamp.isoformat()
-    } for m in messages_qs]
-    return JsonResponse(data, safe=False)
+    try:
+        uid = int(user_id)
+        if uid == 0:
+            messages_qs = ChatMessage.objects.filter(receiver__isnull=True).order_by('timestamp')
+        else:
+            target_user = User.objects.get(id=uid)
+            messages_qs = ChatMessage.objects.filter(
+                (Q(sender=request.user) & Q(receiver=target_user)) |
+                (Q(sender=target_user) & Q(receiver=request.user))
+            ).order_by('timestamp')
+        
+        data = [{'sender__username': m.sender.username, 'content': m.content, 'timestamp': m.timestamp.isoformat()} for m in messages_qs]
+        return JsonResponse(data, safe=False)
+    except:
+        return JsonResponse([], safe=False)
 
 @login_required
 def video_call_room(request, room_name):
@@ -239,22 +234,16 @@ def video_call_room(request, room_name):
     })
 
 # ==========================================
-# 5. NEW MODERN MODULES (P2P & MESSAGE CENTER)
+# 5. UTILITIES
 # ==========================================
 
 @login_required
 def p2p_view(request):
-    contacts = User.objects.exclude(id=request.user.id)
-    return render(request, 'dashboard/p2p.html', {'contacts': contacts})
+    return render(request, 'dashboard/p2p.html', {'contacts': User.objects.exclude(id=request.user.id)})
 
 @login_required
 def message_center_view(request):
-    contacts = User.objects.exclude(id=request.user.id)
-    return render(request, 'dashboard/message_center.html', {'contacts': contacts})
-
-# ==========================================
-# 6. UTILITIES
-# ==========================================
+    return render(request, 'dashboard/message_center.html', {'contacts': User.objects.exclude(id=request.user.id)})
 
 @login_required
 def manage_announcements(request):
@@ -276,7 +265,23 @@ def leaderboard_view(request): return render(request, 'dashboard/leaderboard.htm
 def check_efficiency_api(request):
     metrics, _ = PerformanceMetric.objects.get_or_create(worker=request.user)
     return JsonResponse({'score': metrics.score})
+
 @login_required
 def general_hub_view(request):
-    contacts = User.objects.exclude(id=request.user.id)
-    return render(request, 'dashboard/general_hub.html', {'contacts': contacts})
+    return render(request, 'dashboard/general_hub.html', {'contacts': User.objects.exclude(id=request.user.id)})
+@login_required
+def submissions_dashboard(request):
+    return render(request, 'dashboard/submissions_dashboard.html', {
+        'submissions': WorkSubmission.objects.all().order_by('-submitted_at'),
+    })
+@login_required
+def message_center_with_worker(request, worker_id):
+    # Retrieve the specific worker the user is trying to message
+    target_worker = get_object_or_404(User, id=worker_id)
+    
+    # Return the same template as your message center, 
+    # but pass the target worker to the context
+    return render(request, 'dashboard/message_center.html', {
+        'contacts': User.objects.exclude(id=request.user.id),
+        'active_worker': target_worker
+    })
