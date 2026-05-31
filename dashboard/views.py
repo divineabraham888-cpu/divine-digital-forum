@@ -25,7 +25,6 @@ FORUM_BRANDING = "Divine Digital Forum"
 # ==========================================
 
 def auth(request):
-    """Handles unified user registration and authentication logic."""
     user_form = UserRegistrationForm()
     profile_form = ProfileForm()
     login_form = AuthenticationForm()
@@ -183,10 +182,9 @@ def submit_task(request, task_id):
 
 @login_required
 def submissions_dashboard(request):
-    context = {
+    return render(request, 'dashboard/submissions_dashboard.html', {
         'submissions': WorkSubmission.objects.all().order_by('-submitted_at'),
-    }
-    return render(request, 'dashboard/submissions_dashboard.html', context)
+    })
 
 @login_required
 def message_center(request):
@@ -231,7 +229,6 @@ def fetch_messages(request, user_id):
         'content': m.content,
         'timestamp': m.timestamp.isoformat()
     } for m in messages_qs]
-    
     return JsonResponse(data, safe=False)
 
 @login_required
@@ -242,7 +239,21 @@ def video_call_room(request, room_name):
     })
 
 # ==========================================
-# 5. UTILITIES
+# 5. NEW MODERN MODULES (P2P & MESSAGE CENTER)
+# ==========================================
+
+@login_required
+def p2p_view(request):
+    contacts = User.objects.exclude(id=request.user.id)
+    return render(request, 'dashboard/p2p.html', {'contacts': contacts})
+
+@login_required
+def message_center_view(request):
+    contacts = User.objects.exclude(id=request.user.id)
+    return render(request, 'dashboard/message_center.html', {'contacts': contacts})
+
+# ==========================================
+# 6. UTILITIES
 # ==========================================
 
 @login_required
@@ -260,6 +271,7 @@ def suggestion_box(request):
 def profile_view(request): return render(request, 'dashboard/profile.html')
 def settings_view(request): return render(request, 'dashboard/settings.html')
 def leaderboard_view(request): return render(request, 'dashboard/leaderboard.html')
+
 @login_required 
 def check_efficiency_api(request):
     metrics, _ = PerformanceMetric.objects.get_or_create(worker=request.user)

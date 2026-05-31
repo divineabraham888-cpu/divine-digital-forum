@@ -28,10 +28,10 @@ urlpatterns = [
     # --- Performance & Metrics ---
     path('check-efficiency/', views.check_efficiency_api, name='check_efficiency'),
     
-    # --- Communications, Messaging & Feedback ---
+    # --- Communications & Old Messaging ---
     path('suggestion-box/', views.suggestion_box, name='suggestion_box'),
     path('manage-announcements/', views.manage_announcements, name='manage_announcements'),
-    path('message-center/', views.message_center, name='message_center'),
+    path('message-center/', views.message_center, name='old_message_center'),
     path('message-center/<int:worker_id>/', views.message_center_with_worker, name='message_center_with_worker'),
     
     # --- Async API Endpoints ---
@@ -42,5 +42,8 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile_view'),
     path('settings/', views.settings_view, name='settings_view'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard_view'),
+    
+    # --- NEW P2P AND MODERN COMMAND CENTER ---
+    path('p2p/', views.p2p_view, name='p2p_hub'),
     path('messages/', views.message_center_view, name='message_center'),
 ]
