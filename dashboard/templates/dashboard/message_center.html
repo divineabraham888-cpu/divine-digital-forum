@@ -8,6 +8,7 @@
         --deep-navy: #0a1128;
         --royal-gold: #d4af37;
         --charcoal: #1c2541;
+        --divine-green: #0d3b1f; /* Added Green */
         --text-light: #e0e0e0;
     }
     body { background-color: var(--deep-navy) !important; color: var(--text-light) !important; }
@@ -15,13 +16,13 @@
     .divine-card { background: var(--charcoal); border: 1px solid var(--royal-gold); border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
     .btn-outline-warning { color: var(--royal-gold); border-color: var(--royal-gold); }
     .btn-outline-warning:hover { background: var(--royal-gold); color: black; }
+    .chat-msg { background: var(--divine-green); border-left: 4px solid var(--royal-gold); color: var(--text-light); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
 <div class="divine-app-container d-flex vh-100">
     <nav class="bg-dark border-end border-warning d-flex flex-column p-3" style="width: 260px;">
         <h4 class="text-warning mb-4 fw-bold">🌐 GENERAL HQ</h4>
-        
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('chat')">💬 Global Chat</button>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('meeting')">👥 Mass Meeting</button>
         
@@ -32,11 +33,10 @@
     </nav>
 
     <main class="flex-grow-1 p-4 overflow-auto">
-        
         <section id="hub-section-chat" class="hub-section">
             <div class="divine-card p-4 h-100">
                 <h3 class="text-warning mb-3">💬 Global Communication</h3>
-                <div id="global-chat-box" class="bg-black text-light p-3 mb-3 rounded border border-warning" style="height: 60vh; overflow-y: auto;"></div>
+                <div id="global-chat-box" class="bg-black p-3 mb-3 rounded border border-warning" style="height: 60vh; overflow-y: auto;"></div>
                 
                 <form onsubmit="sendGlobalMessage(event)">
                     {% csrf_token %}
@@ -50,20 +50,32 @@
 
         <section id="hub-section-meeting" class="hub-section d-none">
             <div class="divine-card p-4 h-100">
-                <div class="d-flex justify-content-between mb-3">
-                    <h3 class="text-warning">👥 Mass Meeting</h3>
+                <div class="d-flex justify-content-between mb-3 align-items-center">
+                    <h3 class="text-warning m-0">👥 Mass Meeting</h3>
                     <div>
-                        <button id="join-btn" class="btn btn-success fw-bold" onclick="joinGeneralMeeting()">🚀 JOIN</button>
-                        <button class="btn btn-info fw-bold" onclick="connectToAllPeers()">🔄 SCAN PEERS</button>
+                        <button id="join-audio-btn" class="btn btn-secondary fw-bold me-2" onclick="joinGeneralMeeting(true)">📞 JOIN (VOICE)</button>
+                        <button id="join-btn" class="btn btn-success fw-bold me-2" onclick="joinGeneralMeeting(false)">🚀 JOIN (VIDEO)</button>
+                        <button id="scan-btn" class="btn btn-info fw-bold" onclick="connectToAllPeers()" disabled>🔄 SCAN PEERS</button>
+                    </div>
+                </div>
+
+                <div id="meeting-controls" class="bg-dark p-2 rounded mb-3 border border-secondary text-center" style="display: none;">
+                    <button class="btn btn-sm btn-outline-light me-2" onclick="toggleMute()" id="btn-mute">🎙️ Mute</button>
+                    <button class="btn btn-sm btn-outline-light me-2" onclick="toggleVideo()" id="btn-video">📹 Video Off</button>
+                    <button class="btn btn-sm btn-primary me-2" onclick="shareScreen()" id="btn-screen">💻 Share Screen</button>
+                    <button class="btn btn-sm btn-danger me-4" onclick="leaveMeeting()">❌ Leave Call</button>
+                    
+                    <div class="d-inline-block align-middle">
+                        <label class="text-warning small me-1">Volume:</label>
+                        <input type="range" id="global-volume" min="0" max="1" step="0.1" value="1" onchange="adjustVolume(this.value)">
                     </div>
                 </div>
                 
                 <div id="video-grid" class="row g-3" style="min-height: 50vh;">
-                    
                     <div class="col-4" id="local-stream-container" style="display: none;">
-                        <video id="hub-local-vid" class="w-100 border border-warning rounded" autoplay muted playsinline></video>
+                        <span class="badge bg-warning text-dark position-absolute m-2">You</span>
+                        <video id="hub-local-vid" class="w-100 border border-warning rounded bg-black" autoplay muted playsinline></video>
                     </div>
-                    
                 </div>
             </div>
         </section>
@@ -73,7 +85,7 @@
 <script>
     let hubPeer, hubStream;
     let activeConnections = {};
-    let lastMessageCount = 0;
+    let lastMessageCount = -1;
     let isJoined = false;
 
     // --- UI NAVIGATION ---
@@ -82,15 +94,25 @@
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // --- GLOBAL CHAT LOGIC ---
+    // --- GLOBAL CHAT LOGIC (Fixed Disappearing & Colors) ---
     async function loadGlobalMessages() {
         try {
             const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
             const data = await res.json();
-            if (data.length > 0 && data.length !== lastMessageCount) {
+            
+            // Only update DOM if new messages arrived to prevent scrolling jumps/disappearing
+            if (data.length !== lastMessageCount) {
                 const box = document.getElementById('global-chat-box');
-                box.innerHTML = data.map(m => `<div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05)"><b style="color: #d4af37;">${m.sender__username}:</b> ${m.content}</div>`).join('');
-                box.scrollTop = box.scrollHeight;
+                box.innerHTML = data.map(m => `
+                    <div class="mb-2 p-2 rounded chat-msg">
+                        <b style="color: var(--royal-gold);">${m.sender__username}:</b> 
+                        <span class="ms-1">${m.content}</span>
+                    </div>
+                `).join('');
+                
+                if (data.length > lastMessageCount) {
+                    box.scrollTop = box.scrollHeight; // Scroll to bottom only on new messages
+                }
                 lastMessageCount = data.length;
             }
         } catch(e) { console.error("Load Error:", e); }
@@ -106,32 +128,38 @@
         input.value = '';
         loadGlobalMessages();
     }
-    
     setInterval(loadGlobalMessages, 3000);
 
-    // --- VIDEO MEETING LOGIC ---
-    async function joinGeneralMeeting() {
-        if (isJoined) {
-            alert("You are already connected!");
-            return;
-        }
+    // --- VIDEO & AUDIO MEETING LOGIC ---
+    async function joinGeneralMeeting(audioOnly = false) {
+        if (isJoined) return alert("You are already connected!");
 
         const statusEl = document.getElementById('hub-status');
-        const joinBtn = document.getElementById('join-btn');
+        document.getElementById('join-btn').disabled = true;
+        document.getElementById('join-audio-btn').disabled = true;
         
         try {
-            hubStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('hub-local-vid').srcObject = hubStream;
+            // Request permissions based on choice
+            hubStream = await navigator.mediaDevices.getUserMedia({ 
+                video: !audioOnly, 
+                audio: true 
+            });
+            
+            const localVid = document.getElementById('hub-local-vid');
+            localVid.srcObject = hubStream;
             document.getElementById('local-stream-container').style.display = 'block';
             
-            joinBtn.disabled = true;
+            // Show controls and enable scan button
+            document.getElementById('meeting-controls').style.display = 'block';
+            document.getElementById('scan-btn').disabled = false;
             
-            // Connected with Google STUN servers for Render production
+            // Update UI for audio only
+            if(audioOnly) document.getElementById('btn-video').innerText = "🚫 No Video";
+
             hubPeer = new Peer("divine_master_" + "{{ request.user.id }}", {
                 host: '0.peerjs.com',
                 port: 443,
                 secure: true,
-                debug: 3,
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -141,39 +169,32 @@
             });
 
             hubPeer.on('open', (id) => { 
-                statusEl.innerText = "🟢 Online: " + id;
+                statusEl.innerText = "🟢 Online: Ready to scan";
                 isJoined = true;
             });
 
             hubPeer.on('error', (err) => { 
-                console.error("PeerJS Error:", err); 
-                if(err.type === 'peer-unavailable') {
-                    console.log("Tried to call someone who isn't online yet.");
-                } else {
+                if(err.type !== 'peer-unavailable') {
                     statusEl.innerText = "🔴 Error: " + err.type;
                 }
             });
 
+            // When someone calls YOU
             hubPeer.on('call', call => {
                 call.answer(hubStream); 
-                
-                call.on('stream', remoteStream => {
-                    renderRemoteVideo(call.peer, remoteStream);
-                });
-
+                call.on('stream', remoteStream => renderRemoteVideo(call.peer, remoteStream));
                 call.on('close', () => removeRemoteVideo(call.peer));
             });
         } catch(e) { 
-            alert("Camera/Mic Error: Please ensure you grant permission. " + e.message); 
-            joinBtn.disabled = false;
+            alert("Device Error: Please grant camera/mic permissions."); 
+            document.getElementById('join-btn').disabled = false;
+            document.getElementById('join-audio-btn').disabled = false;
         }
     }
 
     function connectToAllPeers() {
-        if (!isJoined) {
-            alert("You must JOIN the meeting first before scanning peers.");
-            return;
-        }
+        if (!isJoined) return;
+        document.getElementById('hub-status').innerText = "🟢 Scanning...";
         
         const targets = [{% for contact in contacts %} "{{ contact.id }}", {% endfor %}];
         
@@ -186,11 +207,7 @@
                     
                     if(call) {
                         activeConnections[peerId] = call;
-                        
-                        call.on('stream', remoteStream => {
-                            renderRemoteVideo(peerId, remoteStream);
-                        });
-                        
+                        call.on('stream', remoteStream => renderRemoteVideo(peerId, remoteStream));
                         call.on('close', () => removeRemoteVideo(peerId));
                     }
                 }
@@ -198,21 +215,21 @@
         });
     }
 
-    // --- DOM MANIPULATION FOR VIDEO BOXES ---
+    // --- DOM MANIPULATION FOR REMOTE VIDEOS ---
     function renderRemoteVideo(peerId, stream) {
         if (document.getElementById('container-' + peerId)) return;
 
         const videoGrid = document.getElementById('video-grid');
-        
         const colDiv = document.createElement('div');
-        colDiv.className = 'col-4';
+        colDiv.className = 'col-4 position-relative';
         colDiv.id = 'container-' + peerId;
 
         const vidEl = document.createElement('video');
         vidEl.srcObject = stream;
-        vidEl.className = 'w-100 border border-info rounded';
+        vidEl.className = 'w-100 border border-info rounded bg-black';
         vidEl.autoplay = true;
         vidEl.playsInline = true;
+        vidEl.volume = document.getElementById('global-volume').value; // Apply current volume
 
         colDiv.appendChild(vidEl);
         videoGrid.appendChild(colDiv);
@@ -222,6 +239,102 @@
         const el = document.getElementById('container-' + peerId);
         if (el) el.remove();
         delete activeConnections[peerId];
+    }
+
+    // --- NEW: MEETING CONTROLS ---
+
+    function toggleMute() {
+        if(!hubStream) return;
+        const audioTrack = hubStream.getAudioTracks()[0];
+        if(audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            const btn = document.getElementById('btn-mute');
+            btn.innerText = audioTrack.enabled ? "🎙️ Mute" : "🔇 Unmuted";
+            btn.classList.toggle('btn-danger', !audioTrack.enabled);
+            btn.classList.toggle('btn-outline-light', audioTrack.enabled);
+        }
+    }
+
+    function toggleVideo() {
+        if(!hubStream) return;
+        const videoTrack = hubStream.getVideoTracks()[0];
+        if(videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            const btn = document.getElementById('btn-video');
+            btn.innerText = videoTrack.enabled ? "📹 Video Off" : "🚫 Video On";
+            btn.classList.toggle('btn-danger', !videoTrack.enabled);
+            btn.classList.toggle('btn-outline-light', videoTrack.enabled);
+        }
+    }
+
+    function adjustVolume(val) {
+        document.querySelectorAll('#video-grid video').forEach(vid => {
+            if(vid.id !== 'hub-local-vid') vid.volume = val;
+        });
+    }
+
+    async function shareScreen() {
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const screenTrack = screenStream.getVideoTracks()[0];
+            
+            // 1. Send screen track to all connected peers
+            for (let peerId in hubPeer.connections) {
+                let connections = hubPeer.connections[peerId];
+                for (let conn of connections) {
+                    if (conn.peerConnection) {
+                        let sender = conn.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                        if (sender) sender.replaceTrack(screenTrack);
+                    }
+                }
+            }
+            
+            // 2. Show screen on our local video box
+            document.getElementById('hub-local-vid').srcObject = screenStream;
+
+            // 3. When user clicks "Stop Sharing" on browser banner, revert to camera
+            screenTrack.onended = () => {
+                const cameraTrack = hubStream.getVideoTracks()[0];
+                for (let peerId in hubPeer.connections) {
+                    let connections = hubPeer.connections[peerId];
+                    for (let conn of connections) {
+                        if (conn.peerConnection) {
+                            let sender = conn.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                            if (sender && cameraTrack) sender.replaceTrack(cameraTrack);
+                        }
+                    }
+                }
+                document.getElementById('hub-local-vid').srcObject = hubStream;
+            };
+        } catch(e) {
+            console.error("Screen share canceled or failed.", e);
+        }
+    }
+
+    function leaveMeeting() {
+        // Destroy connection and stop camera/mic usage
+        if (hubPeer) hubPeer.destroy();
+        if (hubStream) hubStream.getTracks().forEach(track => track.stop());
+        
+        // Reset UI variables
+        activeConnections = {};
+        isJoined = false;
+        
+        // Hide controls and local video
+        document.getElementById('meeting-controls').style.display = 'none';
+        document.getElementById('local-stream-container').style.display = 'none';
+        document.getElementById('hub-status').innerText = "Disconnected";
+        
+        // Remove all remote videos
+        const videoGrid = document.getElementById('video-grid');
+        Array.from(videoGrid.children).forEach(child => {
+            if (child.id !== 'local-stream-container') child.remove();
+        });
+
+        // Reset Buttons
+        document.getElementById('join-btn').disabled = false;
+        document.getElementById('join-audio-btn').disabled = false;
+        document.getElementById('scan-btn').disabled = true;
     }
 </script>
 
