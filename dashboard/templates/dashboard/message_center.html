@@ -2,22 +2,27 @@
 {% block content %}
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-<div class="divine-app-container d-flex vh-100" style="background-color: #011C10;">
+<style>
+    :root {
+        --deep-navy: #0a1128;
+        --royal-gold: #d4af37;
+        --charcoal: #1c2541;
+        --text-light: #e0e0e0;
+    }
+    body { background-color: var(--deep-navy) !important; color: var(--text-light) !important; }
+    .hub-section { animation: fadeIn 0.3s ease-in-out; }
+    .divine-card { background: var(--charcoal); border: 1px solid var(--royal-gold); border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+    .btn-outline-warning { color: var(--royal-gold); border-color: var(--royal-gold); }
+    .btn-outline-warning:hover { background: var(--royal-gold); color: black; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<div class="divine-app-container d-flex vh-100">
     <nav class="bg-dark border-end border-warning d-flex flex-column p-3" style="width: 260px;">
         <h4 class="text-warning mb-4 fw-bold">🌐 GENERAL HQ</h4>
-        
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('chat')">💬 Global Chat</button>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('meeting')">👥 Mass Meeting</button>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('board')">🎨 Teaching Board</button>
-        <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('p2p')">🔗 P2P Connect</button>
-        
-        <hr class="border-warning border-2 border-opacity-50">
-        
-        <div class="mb-3 text-light">
-            <label class="form-label small text-warning fw-bold mb-1">🔊 Master Volume</label>
-            <input type="range" class="form-range" id="master-volume" min="0" max="100" value="100" onchange="adjustMasterVolume(this.value)">
-        </div>
-
         <div class="mt-auto p-2 border border-warning rounded bg-black">
             <small class="text-warning d-block">Network Status:</small>
             <span id="hub-status" class="text-white small fw-bold">Ready</span>
@@ -25,12 +30,11 @@
     </nav>
 
     <main class="flex-grow-1 p-4 overflow-auto">
-        
         <section id="hub-section-chat" class="hub-section">
             <div class="divine-card p-4 h-100">
                 <h3 class="text-warning mb-3">💬 Global Communication</h3>
                 <div id="global-chat-box" class="bg-black text-light p-3 mb-3 rounded border border-warning" style="height: 60vh; overflow-y: auto;"></div>
-                <form id="global-chat-form" onsubmit="sendGlobalMessage(event)">
+                <form onsubmit="sendGlobalMessage(event)">
                     {% csrf_token %}
                     <div class="input-group">
                         <input type="text" id="global-chat-input" class="form-control bg-dark text-white border-warning" placeholder="Broadcast message..." required>
@@ -42,104 +46,51 @@
 
         <section id="hub-section-meeting" class="hub-section d-none">
             <div class="divine-card p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between mb-3">
                     <h3 class="text-warning">👥 Mass Meeting</h3>
-                    <button id="join-btn" class="btn btn-success fw-bold px-4" onclick="joinGeneralMeeting()">🚀 JOIN MEETING</button>
-                </div>
-                <div id="video-grid" class="row row-cols-1 row-cols-md-3 g-3 p-3 rounded" style="background: #000; min-height: 50vh;">
-                    <div class="col" id="local-stream-container" style="display: none;">
-                        <video id="hub-local-vid" class="w-100 h-100 border border-warning rounded" autoplay muted playsinline></video>
+                    <div>
+                        <button id="join-btn" class="btn btn-success fw-bold" onclick="joinGeneralMeeting()">🚀 JOIN</button>
+                        <button class="btn btn-info fw-bold" onclick="connectToAllPeers()">🔄 SCAN PEERS</button>
                     </div>
                 </div>
-                <div id="meeting-controls" class="d-flex gap-3 mt-3" style="display: none !important;">
-                    <button class="btn btn-outline-warning" onclick="toggleHubAudio()">🎙️ Audio</button>
-                    <button class="btn btn-outline-warning" onclick="toggleHubVideo()">📹 Video</button>
+                <div id="video-grid" class="row g-3" style="min-height: 50vh;">
+                    <div class="col-4" id="local-stream-container" style="display: none;">
+                        <video id="hub-local-vid" class="w-100 border border-warning rounded" autoplay muted playsinline></video>
+                    </div>
                 </div>
-            </div>
-        </section>
-
-        <section id="hub-section-board" class="hub-section d-none">
-            <div class="divine-card p-4 h-100">
-                <h3 class="text-warning">🎨 Teaching Board</h3>
-                <iframe src="https://excalidraw.com/" class="w-100 rounded border border-warning" style="height: 65vh;"></iframe>
-            </div>
-        </section>
-
-        <section id="hub-section-p2p" class="hub-section d-none">
-            <div class="divine-card p-4 h-100">
-                <h3 class="text-warning">🔗 P2P Management</h3>
-                <p class="text-light">Manage direct connections below.</p>
-                <div id="p2p-container" class="text-white"></div>
             </div>
         </section>
     </main>
 </div>
 
-<style>
-    .hub-section { animation: fadeIn 0.3s ease-in-out; }
-    .divine-card { background: #00361C; border: 2px solid #FFD700; border-radius: 15px; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-</style>
-
 <script>
+    // Global State
+    let hubPeer, hubStream;
+    let activeConnections = {};
+    let lastMessageCount = 0;
+
     function switchHubSection(id) {
         document.querySelectorAll('.hub-section').forEach(s => s.classList.add('d-none'));
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // PeerJS Init
-    let hubPeer, hubStream;
-    const corporateContacts = [{% for contact in contacts %} "{{ contact.id }}", {% endfor %}];
-
-    async function joinGeneralMeeting() {
-        const statusEl = document.getElementById('hub-status');
-        try {
-            hubStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('hub-local-vid').srcObject = hubStream;
-            document.getElementById('local-stream-container').style.display = 'block';
-            
-            // Standard Cloud Server
-            hubPeer = new Peer("divine_master_" + "{{ request.user.id }}", {
-                host: 'peerjs.com',
-                port: 443,
-                secure: true
-            });
-
-            hubPeer.on('open', (id) => {
-                statusEl.innerText = "🟢 Online";
-                corporateContacts.forEach(uid => {
-                    if(uid != "{{ request.user.id }}") {
-                        const call = hubPeer.call("divine_master_" + uid, hubStream);
-                        call.on('stream', stream => renderRemoteVideo(uid, stream));
-                    }
-                });
-            });
-
-            hubPeer.on('call', call => {
-                call.answer(hubStream);
-                call.on('stream', stream => renderRemoteVideo(call.peer, stream));
-            });
-        } catch(e) { alert("Camera/Mic Access Denied."); }
-    }
-
-    function renderRemoteVideo(peerId, stream) {
-        const grid = document.getElementById('video-grid');
-        const vid = document.createElement('video');
-        vid.autoplay = true;
-        vid.playsInline = true;
-        vid.srcObject = stream;
-        vid.className = "col w-25 border border-info";
-        grid.appendChild(vid);
-    }
-
     // Chat Logic
     async function loadGlobalMessages() {
-        const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
-        const data = await res.json();
-        const box = document.getElementById('global-chat-box');
-        box.innerHTML = data.map(m => `<div><b>${m.sender__username}:</b> ${m.content}</div>`).join('');
+        try {
+            const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
+            const data = await res.json();
+            if (data.length > 0 && data.length !== lastMessageCount) {
+                const box = document.getElementById('global-chat-box');
+                box.innerHTML = data.map(m => `
+                    <div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05)">
+                        <b style="color: #d4af37;">${m.sender__username}:</b> ${m.content}
+                    </div>`).join('');
+                box.scrollTop = box.scrollHeight;
+                lastMessageCount = data.length;
+            }
+        } catch(e) {}
     }
-    
+
     async function sendGlobalMessage(e) {
         e.preventDefault();
         const input = document.getElementById('global-chat-input');
@@ -152,5 +103,55 @@
     }
     
     setInterval(loadGlobalMessages, 3000);
+
+    // P2P Logic
+    async function joinGeneralMeeting() {
+        const statusEl = document.getElementById('hub-status');
+        try {
+            hubStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('hub-local-vid').srcObject = hubStream;
+            document.getElementById('local-stream-container').style.display = 'block';
+            
+            hubPeer = new Peer("divine_master_" + "{{ request.user.id }}", {
+                host: 'peerjs.com', port: 443, secure: true
+            });
+
+            hubPeer.on('open', (id) => {
+                statusEl.innerText = "🟢 Online: " + id;
+            });
+
+            hubPeer.on('call', call => {
+                call.answer(hubStream);
+                call.on('stream', stream => renderRemoteVideo(call.peer, stream));
+            });
+        } catch(e) { alert("Camera/Mic Error: " + e.message); }
+    }
+
+    function connectToAllPeers() {
+        const targets = [{% for contact in contacts %} "{{ contact.id }}", {% endfor %}];
+        targets.forEach(tid => {
+            if(tid != "{{ request.user.id }}") {
+                const peerId = "divine_master_" + tid;
+                if(!activeConnections[peerId]) { 
+                    const call = hubPeer.call(peerId, hubStream);
+                    if(call) {
+                        call.on('stream', stream => renderRemoteVideo(tid, stream));
+                        activeConnections[peerId] = call;
+                    }
+                }
+            }
+        });
+    }
+
+    function renderRemoteVideo(peerId, stream) {
+        if(document.getElementById('vid_' + peerId)) return;
+        const grid = document.getElementById('video-grid');
+        const v = document.createElement('video');
+        v.id = 'vid_' + peerId;
+        v.autoplay = true; v.playsInline = true;
+        v.className = "col-4 border border-info m-2";
+        v.srcObject = stream;
+        grid.appendChild(v);
+    }
 </script>
 {% endblock %}
