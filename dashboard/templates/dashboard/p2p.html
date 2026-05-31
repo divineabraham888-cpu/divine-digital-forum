@@ -1,0 +1,129 @@
+{% extends 'dashboard/template.html' %}
+
+{% block content %}
+<!-- External PeerJS Library -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+<div class="divine-app-container d-flex vh-100" style="background-color: #011C10;">
+    <!-- SIDEBAR NAVIGATION -->
+    <nav class="bg-dark border-end border-warning d-flex flex-column p-3" style="width: 250px;">
+        <h4 class="text-warning mb-4 fw-bold">🛡️ COMMAND CENTER</h4>
+        <button class="btn btn-outline-warning mb-2 text-start" onclick="showSection('hq')">🌐 General HQ</button>
+        <button class="btn btn-outline-warning mb-2 text-start" onclick="showSection('p2p')">👤 P2P Hub</button>
+        <button class="btn btn-outline-warning mb-2 text-start" onclick="showSection('board')">🎨 Digital Board</button>
+        <div class="mt-auto p-2 border border-warning rounded">
+            <small class="text-warning">Status:</small>
+            <div id="sys-status" class="text-white fw-bold">System Idle</div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-grow-1 p-4 overflow-auto">
+        
+        <!-- MODULE: GENERAL HQ -->
+        <section id="section-hq" class="module-section">
+            <div class="divine-card p-4">
+                <h2 class="text-warning">General HQ Communication</h2>
+                <div id="chat-box" class="bg-black text-light p-3 mb-3 rounded border border-warning" style="height: 400px; overflow-y: auto;"></div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Broadcast to HQ...">
+                    <button class="btn btn-warning fw-bold" onclick="broadcastMsg()">Send</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE: P2P HUB -->
+        <section id="section-p2p" class="module-section d-none">
+            <div class="divine-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="text-warning">P2P Secure Hub</h2>
+                    <button class="btn btn-success fw-bold" onclick="bootP2P()">🚀 Boot P2P Connection</button>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="bg-dark p-3 rounded border border-warning">
+                            <h6 class="text-warning">Contacts</h6>
+                            <ul class="list-group" id="peer-list">
+                                {% for contact in contacts %}
+                                <li class="list-group-item bg-transparent text-warning border-secondary d-flex justify-content-between">
+                                    {{ contact.username }}
+                                    <button class="btn btn-sm btn-outline-warning" onclick="setTarget('{{ contact.id }}')">Connect</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="position-relative border border-warning" style="height: 400px; background: #000;">
+                            <video id="remote-vid" class="w-100 h-100" autoplay playsinline></video>
+                            <video id="local-vid" class="position-absolute bottom-0 end-0 border border-warning" style="width: 150px;" autoplay muted playsinline></video>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-outline-warning" onclick="toggleAudio()">🎙️ Audio</button>
+                            <button class="btn btn-outline-warning" onclick="toggleVideo()">📹 Video</button>
+                            <button class="btn btn-primary fw-bold" onclick="callTarget()">📞 Execute Call</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE: DIGITAL BOARD -->
+        <section id="section-board" class="module-section d-none">
+            <div class="divine-card p-4 h-100">
+                <h2 class="text-warning">Digital Teaching Board</h2>
+                <iframe src="https://excalidraw.com/" class="w-100 rounded" style="height: 600px;"></iframe>
+            </div>
+        </section>
+    </main>
+</div>
+
+<style>
+    .module-section { animation: fadeIn 0.3s; }
+    .divine-card { background: #00361C; border: 2px solid #FFD700; border-radius: 15px; color: #fff; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<script>
+    // NAVIGATION LOGIC
+    function showSection(id) {
+        document.querySelectorAll('.module-section').forEach(s => s.classList.add('d-none'));
+        document.getElementById('section-' + id).classList.remove('d-none');
+    }
+
+    // P2P LOGIC
+    let peer, localStream, targetId;
+    async function bootP2P() {
+        document.getElementById('sys-status').innerText = "Initializing Hardware...";
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local-vid').srcObject = localStream;
+            
+            peer = new Peer("divine_master_" + "{{ request.user.id }}", { secure: true, host: '0.peerjs.com', port: 443 });
+            peer.on('open', (id) => document.getElementById('sys-status').innerText = "🟢 Online: " + id);
+            peer.on('call', (call) => {
+                call.answer(localStream);
+                call.on('stream', (s) => document.getElementById('remote-vid').srcObject = s);
+            });
+        } catch(e) { alert("Hardware Access Denied!"); }
+    }
+
+    function setTarget(id) { targetId = "divine_master_" + id; alert("Target Locked: " + targetId); }
+    function callTarget() { 
+        if(!targetId) return alert("Select a target first!");
+        peer.call(targetId, localStream).on('stream', (s) => document.getElementById('remote-vid').srcObject = s); 
+    }
+    
+    // UTILS
+    function toggleAudio() { localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled; }
+    function toggleVideo() { localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled; }
+    function broadcastMsg() {
+        const input = document.getElementById('chat-input');
+        const box = document.getElementById('chat-box');
+        if(input.value) {
+            box.innerHTML += `<div><strong>You:</strong> ${input.value}</div>`;
+            input.value = '';
+        }
+    }
+</script>
+{% endblock %}

@@ -42,4 +42,5 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile_view'),
     path('settings/', views.settings_view, name='settings_view'),
     path('leaderboard/', views.leaderboard_view, name='leaderboard_view'),
+    path('messages/', views.message_center_view, name='message_center'),
 ]

@@ -1,142 +1,86 @@
 {% extends 'dashboard/template.html' %}
 {% block content %}
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-<div class="divine-app-container container-fluid p-0 d-flex flex-column vh-100" id="app-root">
-    
-    <header class="p-3 border-bottom border-warning d-flex justify-content-between align-items-center bg-dark">
-        <h3 class="divine-gold-text fw-bold m-0">🛡️ DIVINE COMMAND CENTER</h3>
-        <div class="d-flex gap-2 align-items-center">
-            <button onclick="activateSystem()" class="btn btn-success fw-bold">🚀 START LIVE MEETING</button>
-            
-            <button onclick="toggleAudio()" class="btn btn-outline-warning">🎙️ Mute</button>
-            <button onclick="toggleVideo()" class="btn btn-outline-warning">📹 Video</button>
-            <button onclick="toggleScreenShare()" class="btn btn-outline-primary">🖥️ Share</button>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1" onchange="adjustVolume(this.value)">
-            <span id="sys-status" class="badge bg-warning text-dark">OFFLINE</span>
+<div class="divine-message-container d-flex" style="height: 100vh; background-color: #011C10;">
+    <!-- SIDEBAR: CHAT LIST -->
+    <nav class="bg-dark border-end border-warning p-3 d-flex flex-column" style="width: 300px;">
+        <h4 class="text-warning mb-4 fw-bold">📨 MESSAGE CENTER</h4>
+        <div class="list-group list-group-flush" id="chat-list">
+            <button class="list-group-item bg-transparent text-warning border-warning" onclick="switchChat('General_HQ')">🌐 General HQ (All)</button>
+            <button class="list-group-item bg-transparent text-warning border-warning" onclick="switchChat('Admin_Chat')">🛡️ Admin Suite</button>
+            <hr class="text-warning">
+            <h6 class="text-warning small mt-2">DIRECT MESSAGES</h6>
+            {% for contact in contacts %}
+            <button class="list-group-item bg-transparent text-white border-secondary" onclick="switchChat('{{ contact.username }}')">👤 {{ contact.username }}</button>
+            {% endfor %}
         </div>
-    </header>
+        <div class="mt-auto">
+            <a href="{% url 'dashboard:p2p_hub' %}" class="btn btn-outline-warning w-100">⬅ Back to P2P Hub</a>
+        </div>
+    </nav>
 
-    <ul class="nav nav-tabs divine-nav bg-dark">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#hq-tab">🌐 General HQ</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#p2p-tab">👤 P2P Hub</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#board-tab">🎨 Digital Board</a></li>
-    </ul>
+    <!-- MAIN CHAT AREA -->
+    <main class="flex-grow-1 d-flex flex-column" style="background-color: #00361C;">
+        <header class="p-3 border-bottom border-warning d-flex justify-content-between align-items-center">
+            <h5 id="active-chat-title" class="text-warning mb-0">Select a chat to begin</h5>
+            <span class="badge bg-warning text-dark">SECURE CONNECTION</span>
+        </header>
 
-    <div class="tab-content flex-grow-1 overflow-hidden" style="background-color: #011C10;">
-        
-        <div class="tab-pane fade show active h-100 p-3" id="hq-tab">
-            <div class="divine-card h-100 d-flex flex-column">
-                <div id="chat-log" class="flex-grow-1 overflow-auto p-3 text-white" style="font-family: monospace;"></div>
-                <div class="p-3 border-top border-warning">
-                    <input type="text" id="chat-input" class="form-control bg-dark text-warning" placeholder="Broadcast to all workers...">
-                </div>
+        <div id="message-display" class="flex-grow-1 p-4 overflow-auto text-white">
+            <!-- Messages appear here -->
+        </div>
+
+        <div class="p-3 border-top border-warning bg-dark">
+            <div class="input-group">
+                <input type="text" id="msg-input" class="form-control bg-dark text-white border-warning" placeholder="Type command/message...">
+                <button class="btn btn-warning fw-bold" onclick="sendMessage()">SEND</button>
             </div>
         </div>
-
-        <div class="tab-pane fade h-100 p-3" id="p2p-tab">
-            <div class="row h-100 g-3">
-                <div class="col-md-3">
-                    <div class="divine-card p-3 h-100">
-                        <h5 class="text-warning">Available Units</h5>
-                        <ul class="list-group list-group-flush bg-transparent" id="peer-list">
-                            {% for contact in contacts %}
-                            <li class="list-group-item bg-transparent text-white d-flex justify-content-between">
-                                {{ contact.username }}
-                                <button onclick="setTarget('{{ contact.id }}')" class="btn btn-sm btn-outline-warning">Target</button>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-md-9 position-relative divine-card">
-                    <video id="remote-vid" class="w-100 h-100 bg-black" autoplay playsinline></video>
-                    <video id="local-vid" class="position-absolute bottom-0 end-0 m-3 border border-warning" style="width:200px;" autoplay muted playsinline></video>
-                    <div class="position-absolute top-0 start-0 m-3">
-                        <button onclick="executeCall()" class="btn btn-warning fw-bold">📞 CALL TARGET</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade h-100" id="board-tab">
-            <iframe src="https://excalidraw.com/" class="w-100 h-100 border-0"></iframe>
-        </div>
-    </div>
+    </main>
 </div>
 
 <style>
-    .divine-card { background-color: #00361C; border: 2px solid #FFD700; border-radius: 10px; }
-    .divine-gold-text { color: #FFD700; }
-    .nav-link { color: #FFD700; }
-    .nav-link.active { background-color: #00361C !important; color: #FFD700 !important; border: 1px solid #FFD700 !important; }
+    .divine-message-container { height: 100vh; }
+    #message-display { display: flex; flex-direction: column; gap: 10px; }
+    .msg-bubble { background: #011C10; padding: 10px; border-radius: 10px; border: 1px solid #FFD700; max-width: 70%; }
 </style>
 
 <script>
-    const myId = "{{ request.user.id }}";
-    const myPeerId = "divine_master_" + myId;
-    let peer, localStream, targetId = null;
+    let currentChat = null;
 
-    // 1. CHAT PERSISTENCE
-    const chatLog = document.getElementById('chat-log');
-    const chatInput = document.getElementById('chat-input');
-    
-    function saveAndAppend(msg) {
-        let history = JSON.parse(localStorage.getItem('divine_chat') || '[]');
-        history.push(msg);
-        localStorage.setItem('divine_chat', JSON.stringify(history));
-        const div = document.createElement('div');
-        div.textContent = msg;
-        chatLog.appendChild(div);
-    }
-
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            saveAndAppend("Admin: " + chatInput.value);
-            chatInput.value = '';
-        }
-    });
-
-    // 2. ACTIVATION
-    async function activateSystem() {
-        document.getElementById('sys-status').innerText = "CONNECTING...";
+    // Load messages from LocalStorage so they never disappear
+    function switchChat(chatId) {
+        currentChat = chatId;
+        document.getElementById('active-chat-title').innerText = chatId;
+        document.getElementById('message-display').innerHTML = ''; // Clear view
         
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('local-vid').srcObject = localStream;
-            
-            peer = new Peer(myPeerId, { secure: true, host: '0.peerjs.com', port: 443 });
-            
-            peer.on('open', (id) => {
-                document.getElementById('sys-status').innerText = "🟢 ONLINE: " + id;
-            });
-
-            peer.on('call', (call) => {
-                call.answer(localStream);
-                call.on('stream', (stream) => { document.getElementById('remote-vid').srcObject = stream; });
-            });
-            
-            // Load history
-            JSON.parse(localStorage.getItem('divine_chat') || '[]').forEach(m => {
-                const div = document.createElement('div'); div.textContent = m; chatLog.appendChild(div);
-            });
-
-        } catch (err) {
-            alert("Permissions Denied. Please check your camera settings.");
-        }
+        const history = JSON.parse(localStorage.getItem('msg_' + chatId) || '[]');
+        history.forEach(m => appendToScreen(m.sender, m.text));
     }
 
-    // 3. ACTIONS
-    function setTarget(id) { targetId = "divine_master_" + id; alert("Target Locked: " + targetId); }
-    
-    function executeCall() {
-        if(!targetId) return alert("Select a target first!");
-        const call = peer.call(targetId, localStream);
-        call.on('stream', (stream) => { document.getElementById('remote-vid').srcObject = stream; });
+    function appendToScreen(sender, text) {
+        const display = document.getElementById('message-display');
+        const div = document.createElement('div');
+        div.className = 'msg-bubble';
+        div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        display.appendChild(div);
+        display.scrollTop = display.scrollHeight;
     }
 
-    function toggleAudio() { localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled; }
-    function toggleVideo() { localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled; }
-    function adjustVolume(v) { document.getElementById('remote-vid').volume = v; }
+    function sendMessage() {
+        if(!currentChat) return alert("Select a chat first!");
+        const input = document.getElementById('msg-input');
+        const text = input.value;
+        if(!text) return;
+
+        // Save
+        let history = JSON.parse(localStorage.getItem('msg_' + currentChat) || '[]');
+        history.push({sender: 'You', text: text});
+        localStorage.setItem('msg_' + currentChat, JSON.stringify(history));
+
+        // Display
+        appendToScreen('You', text);
+        input.value = '';
+    }
 </script>
 {% endblock %}
