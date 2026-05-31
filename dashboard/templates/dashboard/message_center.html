@@ -8,41 +8,80 @@
         --deep-navy: #0a1128;
         --royal-gold: #d4af37;
         --charcoal: #1c2541;
-        --divine-green: #0d3b1f; /* Added Green */
+        --divine-green: #0d3b1f; /* Your Brand Green */
         --text-light: #e0e0e0;
     }
-    body { background-color: var(--deep-navy) !important; color: var(--text-light) !important; }
+    
+    /* Global Background Overrides for Green Theme */
+    body, .divine-app-container, .bg-dark { 
+        background-color: var(--divine-green) !important; 
+        color: var(--text-light) !important; 
+    }
+    
     .hub-section { animation: fadeIn 0.3s ease-in-out; }
-    .divine-card { background: var(--charcoal); border: 1px solid var(--royal-gold); border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+    
+    /* Card & Sidebar Styling */
+    .divine-card { 
+        background: #0a2e17 !important; /* Darker green for contrast */
+        border: 2px solid var(--royal-gold); 
+        border-radius: 12px; 
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3); 
+    }
+    
+    nav {
+        border-right: 2px solid var(--royal-gold) !important;
+    }
+
+    /* Button Styling */
     .btn-outline-warning { color: var(--royal-gold); border-color: var(--royal-gold); }
-    .btn-outline-warning:hover { background: var(--royal-gold); color: black; }
-    .chat-msg { background: var(--divine-green); border-left: 4px solid var(--royal-gold); color: var(--text-light); }
+    .btn-outline-warning:hover { background: var(--royal-gold); color: #0d3b1f; }
+    
+    .btn-gold {
+        background-color: var(--royal-gold) !important;
+        color: #0d3b1f !important;
+        font-weight: bold;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.3s ease;
+    }
+    .btn-gold:hover { background-color: #bfa030 !important; box-shadow: 0 0 10px var(--royal-gold); }
+
+    /* Chat Messages - Green & Gold */
+    .chat-msg { 
+        background-color: var(--royal-gold) !important; 
+        color: #0d3b1f !important;
+        border-radius: 8px;
+    }
+    
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 
 <div class="divine-app-container d-flex vh-100">
-    <nav class="bg-dark border-end border-warning d-flex flex-column p-3" style="width: 260px;">
-        <h4 class="text-warning mb-4 fw-bold">🌐 GENERAL HQ</h4>
+    <nav class="bg-dark d-flex flex-column p-3" style="width: 260px;">
+        <h4 class="text-warning mb-4 fw-bold" style="color: var(--royal-gold) !important;">🌐 GENERAL HQ</h4>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('chat')">💬 Global Chat</button>
         <button class="btn btn-outline-warning mb-2 text-start fw-bold" onclick="switchHubSection('meeting')">👥 Mass Meeting</button>
         
-        <div class="mt-auto p-2 border border-warning rounded bg-black">
-            <small class="text-warning d-block">Network Status:</small>
+        <div class="mt-auto p-2 border border-warning rounded" style="background: #0a2e17;">
+            <small class="d-block" style="color: var(--royal-gold);">Network Status:</small>
             <span id="hub-status" class="text-white small fw-bold">Ready</span>
         </div>
     </nav>
 
-    <main class="flex-grow-1 p-4 overflow-auto">
+    <main class="flex-grow-1 p-4 overflow-auto position-relative">
+        
         <section id="hub-section-chat" class="hub-section">
             <div class="divine-card p-4 h-100">
-                <h3 class="text-warning mb-3">💬 Global Communication</h3>
-                <div id="global-chat-box" class="bg-black p-3 mb-3 rounded border border-warning" style="height: 60vh; overflow-y: auto;"></div>
+                <h3 class="mb-3" style="color: var(--royal-gold);">💬 Global Communication</h3>
+                <div id="global-chat-box" class="p-3 mb-3 rounded" style="height: 60vh; overflow-y: auto; background: #072211; border: 1px solid var(--royal-gold);"></div>
                 
                 <form onsubmit="sendGlobalMessage(event)">
                     {% csrf_token %}
                     <div class="input-group">
-                        <input type="text" id="global-chat-input" class="form-control bg-dark text-white border-warning" placeholder="Broadcast message..." required>
-                        <button class="btn btn-warning fw-bold" type="submit">SEND</button>
+                        <input type="text" id="global-chat-input" class="form-control text-white" style="background: #072211; border: 1px solid var(--royal-gold);" placeholder="Broadcast message..." required>
+                        <button class="btn btn-gold fw-bold" type="submit">SEND</button>
                     </div>
                 </form>
             </div>
@@ -51,34 +90,50 @@
         <section id="hub-section-meeting" class="hub-section d-none">
             <div class="divine-card p-4 h-100">
                 <div class="d-flex justify-content-between mb-3 align-items-center">
-                    <h3 class="text-warning m-0">👥 Mass Meeting</h3>
+                    <h3 class="m-0" style="color: var(--royal-gold);">👥 Mass Meeting</h3>
                     <div>
+                        <button class="btn-gold me-2" onclick="toggleWhiteboard()">🎨 Teaching Board</button>
                         <button id="join-audio-btn" class="btn btn-secondary fw-bold me-2" onclick="joinGeneralMeeting(true)">📞 JOIN (VOICE)</button>
                         <button id="join-btn" class="btn btn-success fw-bold me-2" onclick="joinGeneralMeeting(false)">🚀 JOIN (VIDEO)</button>
                         <button id="scan-btn" class="btn btn-info fw-bold" onclick="connectToAllPeers()" disabled>🔄 SCAN PEERS</button>
                     </div>
                 </div>
 
-                <div id="meeting-controls" class="bg-dark p-2 rounded mb-3 border border-secondary text-center" style="display: none;">
+                <div id="meeting-controls" class="p-2 rounded mb-3 border text-center" style="display: none; background: #072211; border-color: var(--royal-gold) !important;">
                     <button class="btn btn-sm btn-outline-light me-2" onclick="toggleMute()" id="btn-mute">🎙️ Mute</button>
                     <button class="btn btn-sm btn-outline-light me-2" onclick="toggleVideo()" id="btn-video">📹 Video Off</button>
                     <button class="btn btn-sm btn-primary me-2" onclick="shareScreen()" id="btn-screen">💻 Share Screen</button>
                     <button class="btn btn-sm btn-danger me-4" onclick="leaveMeeting()">❌ Leave Call</button>
                     
                     <div class="d-inline-block align-middle">
-                        <label class="text-warning small me-1">Volume:</label>
+                        <label class="small me-1" style="color: var(--royal-gold);">Volume:</label>
                         <input type="range" id="global-volume" min="0" max="1" step="0.1" value="1" onchange="adjustVolume(this.value)">
                     </div>
                 </div>
                 
                 <div id="video-grid" class="row g-3" style="min-height: 50vh;">
                     <div class="col-4" id="local-stream-container" style="display: none;">
-                        <span class="badge bg-warning text-dark position-absolute m-2">You</span>
-                        <video id="hub-local-vid" class="w-100 border border-warning rounded bg-black" autoplay muted playsinline></video>
+                        <span class="badge text-dark position-absolute m-2" style="background: var(--royal-gold); z-index: 10;">You</span>
+                        <video id="hub-local-vid" class="w-100 rounded" style="border: 2px solid var(--royal-gold); background: black;" autoplay muted playsinline></video>
                     </div>
                 </div>
             </div>
         </section>
+        
+        <div id="teaching-board-container" style="display: none; position: absolute; top: 2%; left: 2%; width: 96%; height: 96%; background: #ffffff; border: 4px solid var(--royal-gold); z-index: 9999; border-radius: 10px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            
+            <div style="background: var(--divine-green); padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--royal-gold);">
+                <h3 style="color: var(--royal-gold); margin: 0;">Digital Teaching Board</h3>
+                <div>
+                    <button class="btn-gold" id="broadcast-btn" onclick="toggleBoardBroadcast()">📡 Broadcast Board</button>
+                    <button class="btn-gold" onclick="clearBoard()">🗑️ Clear</button>
+                    <button class="btn-gold" style="background: #ff4c4c !important; color: white !important;" onclick="toggleWhiteboard()">❌ Close</button>
+                </div>
+            </div>
+
+            <canvas id="whiteboard" style="flex-grow: 1; cursor: crosshair;"></canvas>
+        </div>
+
     </main>
 </div>
 
@@ -94,24 +149,24 @@
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // --- GLOBAL CHAT LOGIC (Fixed Disappearing & Colors) ---
+    // --- GLOBAL CHAT LOGIC ---
     async function loadGlobalMessages() {
         try {
             const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
             const data = await res.json();
             
-            // Only update DOM if new messages arrived to prevent scrolling jumps/disappearing
+            // Fixes disappearing text: Only update DOM if new messages arrive
             if (data.length !== lastMessageCount) {
                 const box = document.getElementById('global-chat-box');
                 box.innerHTML = data.map(m => `
                     <div class="mb-2 p-2 rounded chat-msg">
-                        <b style="color: var(--royal-gold);">${m.sender__username}:</b> 
-                        <span class="ms-1">${m.content}</span>
+                        <strong style="color: #0d3b1f;">${m.sender__username}:</strong> 
+                        <span class="ms-1" style="color: #0d3b1f;">${m.content}</span>
                     </div>
                 `).join('');
                 
                 if (data.length > lastMessageCount) {
-                    box.scrollTop = box.scrollHeight; // Scroll to bottom only on new messages
+                    box.scrollTop = box.scrollHeight; // Auto-scroll to bottom
                 }
                 lastMessageCount = data.length;
             }
@@ -139,7 +194,6 @@
         document.getElementById('join-audio-btn').disabled = true;
         
         try {
-            // Request permissions based on choice
             hubStream = await navigator.mediaDevices.getUserMedia({ 
                 video: !audioOnly, 
                 audio: true 
@@ -149,11 +203,9 @@
             localVid.srcObject = hubStream;
             document.getElementById('local-stream-container').style.display = 'block';
             
-            // Show controls and enable scan button
             document.getElementById('meeting-controls').style.display = 'block';
             document.getElementById('scan-btn').disabled = false;
             
-            // Update UI for audio only
             if(audioOnly) document.getElementById('btn-video').innerText = "🚫 No Video";
 
             hubPeer = new Peer("divine_master_" + "{{ request.user.id }}", {
@@ -179,11 +231,11 @@
                 }
             });
 
-            // When someone calls YOU
             hubPeer.on('call', call => {
                 call.answer(hubStream); 
                 call.on('stream', remoteStream => renderRemoteVideo(call.peer, remoteStream));
                 call.on('close', () => removeRemoteVideo(call.peer));
+                activeConnections[call.peer] = call;
             });
         } catch(e) { 
             alert("Device Error: Please grant camera/mic permissions."); 
@@ -215,7 +267,6 @@
         });
     }
 
-    // --- DOM MANIPULATION FOR REMOTE VIDEOS ---
     function renderRemoteVideo(peerId, stream) {
         if (document.getElementById('container-' + peerId)) return;
 
@@ -226,10 +277,11 @@
 
         const vidEl = document.createElement('video');
         vidEl.srcObject = stream;
-        vidEl.className = 'w-100 border border-info rounded bg-black';
+        vidEl.className = 'w-100 rounded';
+        vidEl.style.border = "2px solid #17a2b8";
         vidEl.autoplay = true;
         vidEl.playsInline = true;
-        vidEl.volume = document.getElementById('global-volume').value; // Apply current volume
+        vidEl.volume = document.getElementById('global-volume').value; 
 
         colDiv.appendChild(vidEl);
         videoGrid.appendChild(colDiv);
@@ -240,8 +292,6 @@
         if (el) el.remove();
         delete activeConnections[peerId];
     }
-
-    // --- NEW: MEETING CONTROLS ---
 
     function toggleMute() {
         if(!hubStream) return;
@@ -278,63 +328,148 @@
             const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             const screenTrack = screenStream.getVideoTracks()[0];
             
-            // 1. Send screen track to all connected peers
-            for (let peerId in hubPeer.connections) {
-                let connections = hubPeer.connections[peerId];
-                for (let conn of connections) {
-                    if (conn.peerConnection) {
-                        let sender = conn.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                        if (sender) sender.replaceTrack(screenTrack);
-                    }
+            for (let peerId in activeConnections) {
+                let call = activeConnections[peerId];
+                if (call.peerConnection) {
+                    let sender = call.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(screenTrack);
                 }
             }
             
-            // 2. Show screen on our local video box
             document.getElementById('hub-local-vid').srcObject = screenStream;
 
-            // 3. When user clicks "Stop Sharing" on browser banner, revert to camera
             screenTrack.onended = () => {
                 const cameraTrack = hubStream.getVideoTracks()[0];
-                for (let peerId in hubPeer.connections) {
-                    let connections = hubPeer.connections[peerId];
-                    for (let conn of connections) {
-                        if (conn.peerConnection) {
-                            let sender = conn.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                            if (sender && cameraTrack) sender.replaceTrack(cameraTrack);
-                        }
+                for (let peerId in activeConnections) {
+                    let call = activeConnections[peerId];
+                    if (call.peerConnection) {
+                        let sender = call.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                        if (sender && cameraTrack) sender.replaceTrack(cameraTrack);
                     }
                 }
                 document.getElementById('hub-local-vid').srcObject = hubStream;
             };
         } catch(e) {
-            console.error("Screen share canceled or failed.", e);
+            console.error("Screen share canceled.", e);
         }
     }
 
     function leaveMeeting() {
-        // Destroy connection and stop camera/mic usage
         if (hubPeer) hubPeer.destroy();
         if (hubStream) hubStream.getTracks().forEach(track => track.stop());
         
-        // Reset UI variables
         activeConnections = {};
         isJoined = false;
         
-        // Hide controls and local video
         document.getElementById('meeting-controls').style.display = 'none';
         document.getElementById('local-stream-container').style.display = 'none';
         document.getElementById('hub-status').innerText = "Disconnected";
         
-        // Remove all remote videos
         const videoGrid = document.getElementById('video-grid');
         Array.from(videoGrid.children).forEach(child => {
             if (child.id !== 'local-stream-container') child.remove();
         });
 
-        // Reset Buttons
         document.getElementById('join-btn').disabled = false;
         document.getElementById('join-audio-btn').disabled = false;
         document.getElementById('scan-btn').disabled = true;
+    }
+
+    // --- DIGITAL TEACHING BOARD (WHITEBOARD) LOGIC ---
+    const boardContainer = document.getElementById('teaching-board-container');
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let isBroadcastingBoard = false;
+    let originalCameraTrack = null;
+
+    function toggleWhiteboard() {
+        if (boardContainer.style.display === 'none') {
+            boardContainer.style.display = 'flex';
+            resizeCanvas(); 
+        } else {
+            boardContainer.style.display = 'none';
+        }
+    }
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight - 60; 
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#0d3b1f'; // Draw in Divine Green
+    }
+
+    // Drawing Events
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPosition(e.touches[0]); });
+    canvas.addEventListener('touchend', endPosition);
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+
+    function startPosition(e) { isDrawing = true; draw(e); }
+    function endPosition() { isDrawing = false; ctx.beginPath(); }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || e.pageX) - rect.left;
+        const y = (e.clientY || e.pageY) - rect.top;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function clearBoard() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    window.addEventListener('resize', () => { if (boardContainer.style.display === 'flex') resizeCanvas(); });
+
+    // --- BROADCAST TEACHING BOARD LOGIC ---
+    function toggleBoardBroadcast() {
+        const btn = document.getElementById('broadcast-btn');
+        
+        if (!isJoined) return alert("You must join a meeting first to broadcast the board!");
+
+        if (!isBroadcastingBoard) {
+            // Start Broadcasting Canvas
+            const boardStream = canvas.captureStream(30); 
+            const boardTrack = boardStream.getVideoTracks()[0];
+            originalCameraTrack = hubStream.getVideoTracks()[0];
+
+            for (let peerId in activeConnections) {
+                let call = activeConnections[peerId];
+                if (call.peerConnection) {
+                    let sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(boardTrack);
+                }
+            }
+            
+            // Show board on local video thumbnail
+            document.getElementById('hub-local-vid').srcObject = boardStream;
+            
+            isBroadcastingBoard = true;
+            btn.innerText = "🛑 Stop Broadcasting";
+            btn.style.backgroundColor = "#ff4c4c"; 
+            btn.style.color = "white";
+        } else {
+            // Stop Broadcasting, revert to Camera
+            for (let peerId in activeConnections) {
+                let call = activeConnections[peerId];
+                if (call.peerConnection) {
+                    let sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender && originalCameraTrack) sender.replaceTrack(originalCameraTrack);
+                }
+            }
+            
+            // Revert local video thumbnail
+            document.getElementById('hub-local-vid').srcObject = hubStream;
+
+            isBroadcastingBoard = false;
+            btn.innerText = "📡 Broadcast Board";
+            btn.style.backgroundColor = "var(--royal-gold)";
+            btn.style.color = "#0d3b1f";
+        }
     }
 </script>
 
