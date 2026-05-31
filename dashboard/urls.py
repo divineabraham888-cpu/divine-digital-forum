@@ -1,12 +1,14 @@
 from django.urls import path
 from . import views
 
-# This namespace ensures {% url 'dashboard:auth' %} resolves perfectly across your app
 app_name = 'dashboard'
 
 urlpatterns = [
-    # --- Authentication ---
-    path('auth/', views.auth_view, name='auth'),
+    # --- Video Call ---
+    path('call/<str:room_name>/', views.video_call_room, name='video_call'),
+
+    # --- Authentication (CRITICAL FIX FOR THE 500 ERROR) ---
+    path('login/', views.auth, name='auth'),
 
     # --- Dashboards ---
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),

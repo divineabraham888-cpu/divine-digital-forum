@@ -1,0 +1,44 @@
+{% extends 'base.html' %} {# Or whatever your base layout template is called #}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Live Digital Meeting: Room - {{ room_name }}</h4>
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-sm btn-danger">Leave Call</a>
+        </div>
+        <div class="card-body p-0">
+            <!-- This div is where the live video frame will load -->
+            <div id="video-container" style="height: 600px; width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Load the Free Jitsi External API Script -->
+<script src="https://meet.jit.si/external_api.js"></script>
+<script>
+    window.onload = () => {
+        const domain = "meet.jit.si";
+        const options = {
+            roomName: "{{ room_name }}",
+            width: "100%",
+            height: "100%",
+            parentNode: document.querySelector('#video-container'),
+            userInfo: {
+                displayName: "{{ user_name }}" // Automatically names the user in the chat
+            },
+            interfaceConfigOverwrite: {
+                // Customizes the look to fit your brand
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                    'framerate', 'chat', 'raisehand', 'videoquality', 'filmstrip',
+                    'hangup', 'shortcuts', 'tileview', 'mute-everyone', 'select-background'
+                ],
+            }
+        };
+        
+        // Initialize the connection
+        const api = new JitsiMeetExternalAPI(domain, options);
+    };
+</script>
+{% endblock %}
