@@ -2,132 +2,121 @@
 {% block content %}
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-<div class="divine-app-container container-fluid p-0 d-flex flex-column" id="app-root">
-    <div class="divine-header d-flex justify-content-between align-items-center p-3 shadow-lg">
-        <h3 class="mb-0 fw-bold divine-gold-text">🛡️ DIVINE COMMAND CENTER</h3>
-        <span id="sys-status" class="badge divine-badge-gold fs-6">Initializing...</span>
-    </div>
+<div class="divine-app-container container-fluid p-0 d-flex flex-column vh-100" id="app-root">
+    
+    <header class="divine-header p-3 border-bottom border-warning d-flex justify-content-between align-items-center">
+        <h3 class="divine-gold-text fw-bold m-0">🛡️ DIVINE COMMAND CENTER</h3>
+        <div class="d-flex gap-2">
+            <button onclick="toggleAudio()" class="btn btn-outline-warning">🎙️ Mute</button>
+            <button onclick="toggleVideo()" class="btn btn-outline-warning">📹 Video</button>
+            <button onclick="toggleScreenShare()" class="btn btn-outline-primary">🖥️ Share</button>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1" onchange="adjustVolume(this.value)">
+            <span id="sys-status" class="badge bg-warning text-dark">Initializing...</span>
+        </div>
+    </header>
 
-    <ul class="nav nav-pills nav-fill divine-nav p-2 shadow-sm" id="mainTabs" role="tablist">
-        <li class="nav-item"><a class="nav-link active fw-bold" id="general-tab" data-bs-toggle="tab" href="#general-hq">🌐 General HQ</a></li>
-        <li class="nav-item"><a class="nav-link fw-bold" id="p2p-tab" data-bs-toggle="tab" href="#p2p-hub">👤 P2P Hub</a></li>
-        <li class="nav-item"><a class="nav-link fw-bold" id="board-tab" data-bs-toggle="tab" href="#teaching-board">🎨 Digital Board</a></li>
+    <ul class="nav nav-tabs divine-nav">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#hq-tab">🌐 General HQ</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#p2p-tab">👤 P2P Hub</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#board-tab">🎨 Digital Board</a></li>
     </ul>
 
-    <div class="tab-content flex-grow-1 overflow-hidden" id="mainTabContent">
-        <div class="tab-pane fade show active h-100 p-3" id="p2p-hub">
-            <div class="row h-100 g-3">
-                <div class="col-md-3 divine-card p-2">
-                    <h5 class="divine-gold-text">Peers</h5>
-                    <ul class="list-group divine-list">
+    <div class="tab-content flex-grow-1 overflow-hidden">
+        
+        <div class="tab-pane fade show active h-100 p-3" id="hq-tab">
+            <div class="divine-card h-100 d-flex flex-column">
+                <div id="chat-log" class="flex-grow-1 overflow-auto p-3 text-white"></div>
+                <div class="p-3 border-top">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Broadcast to HQ...">
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade h-100 p-3" id="p2p-tab">
+            <div class="row h-100">
+                <div class="col-md-3">
+                    <ul class="list-group divine-card">
                         {% for contact in contacts %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item bg-transparent text-warning d-flex justify-content-between">
                             {{ contact.username }}
-                            <button class="btn btn-sm divine-btn-outline" onclick="prepareP2P('{{ contact.id }}')">Select</button>
+                            <button onclick="prepareP2P('{{ contact.id }}')" class="btn btn-sm btn-warning">Call</button>
                         </li>
                         {% endfor %}
                     </ul>
                 </div>
-                <div class="col-md-9 divine-card p-2 d-flex flex-column">
-                    <div id="p2p-video-grid" class="flex-grow-1 divine-grid-bg d-flex align-items-center justify-content-center">
-                        <video id="p2p-remote-video" autoplay playsinline class="w-100 h-100 object-fit-cover"></video>
-                        <video id="p2p-local-video" autoplay muted playsinline class="position-absolute bottom-0 end-0 m-2 border divine-border-gold" style="width:150px;"></video>
-                    </div>
-                    <div class="divine-controls mt-2 d-flex justify-content-center gap-2">
-                        <button class="btn divine-btn-solid" onclick="executeP2P()">▶ Call Peer</button>
-                        <button class="btn divine-btn-danger" onclick="leaveAllCalls()">⏹ Leave</button>
-                    </div>
+                <div class="col-md-9 position-relative">
+                    <video id="remote-vid" class="w-100 h-100 bg-black"></video>
+                    <video id="local-vid" class="position-absolute bottom-0 end-0 w-25 border border-warning"></video>
                 </div>
             </div>
+        </div>
+
+        <div class="tab-pane fade h-100" id="board-tab">
+            <iframe src="https://excalidraw.com/" class="w-100 h-100 border-0"></iframe>
         </div>
     </div>
 </div>
 
 <style>
-    body, html { margin: 0; padding: 0; height: 100vh; background-color: #011C10 !important; }
-    .divine-app-container { height: 100vh; background-color: #011C10; }
-    .divine-card { background-color: #00361C; border: 1px solid #FFD700; border-radius: 10px; }
-    .divine-gold-text { color: #FFD700 !important; }
-    .divine-badge-gold { background-color: #FFD700; color: #011C10; }
-    .divine-btn-solid { background-color: #FFD700; color: #011C10; font-weight: bold; }
-    .divine-btn-outline { color: #FFD700; border: 2px solid #FFD700; }
-    .divine-btn-danger { color: #FF6347; border: 2px solid #FF6347; }
-    .divine-grid-bg { background-color: #000; }
+    body { background-color: #011C10 !important; color: #FFD700; }
+    .divine-card { background-color: #00361C; border: 2px solid #FFD700; border-radius: 10px; }
+    .divine-gold-text { color: #FFD700; }
+    .nav-tabs .nav-link { color: #FFD700; border: none; }
+    .nav-tabs .nav-link.active { background-color: #00361C; color: #fff; border-bottom: 2px solid #FFD700; }
+    #chat-log { height: 300px; background: rgba(0,0,0,0.3); }
 </style>
 
 <script>
-    const myId = "{{ request.user.id }}";
-    const myPeerId = "divine_master_" + myId;
-    let peer, localStream, activeCalls = {};
-    let targetPeerId = null;
+    // 1. Persistent Messaging (Using LocalStorage so messages stay)
+    const chatLog = document.getElementById('chat-log');
+    const chatInput = document.getElementById('chat-input');
+    
+    function loadMessages() {
+        const history = JSON.parse(localStorage.getItem('divine_chat') || '[]');
+        history.forEach(msg => appendMsg(msg));
+    }
+    
+    function appendMsg(text) {
+        const div = document.createElement('div');
+        div.innerText = text;
+        chatLog.appendChild(div);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const val = chatInput.value;
+            appendMsg("You: " + val);
+            let history = JSON.parse(localStorage.getItem('divine_chat') || '[]');
+            history.push("You: " + val);
+            localStorage.setItem('divine_chat', JSON.stringify(history));
+            chatInput.value = '';
+        }
+    });
+
+    // 2. PeerJS Logic (P2P)
+    const myPeerId = "divine_master_" + "{{ request.user.id }}";
+    let peer, localStream;
 
     function initSystem() {
-        const iceConfig = {
-            'iceServers': [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-        };
-
-        peer = new Peer(myPeerId, {
-            config: iceConfig,
-            secure: true,
-            host: '0.peerjs.com',
-            port: 443
-        });
-
-        peer.on('open', (id) => {
-            document.getElementById('sys-status').innerText = "🟢 CONNECTED: " + id;
-            console.log("PeerJS Connection Open. ID:", id);
-            startHardware();
-        });
-
-        peer.on('error', (err) => {
-            console.error("PEER ERROR:", err);
-            document.getElementById('sys-status').innerText = "🔴 ERROR: " + err.type;
-        });
-
+        peer = new Peer(myPeerId, { secure: true, host: '0.peerjs.com', port: 443 });
+        peer.on('open', (id) => document.getElementById('sys-status').innerText = "🟢 Online");
         peer.on('call', (call) => {
             call.answer(localStream);
-            call.on('stream', (stream) => {
-                document.getElementById('p2p-remote-video').srcObject = stream;
-            });
-            activeCalls[call.peer] = call;
+            call.on('stream', (stream) => document.getElementById('remote-vid').srcObject = stream);
         });
+        startHardware();
     }
 
     async function startHardware() {
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('p2p-local-video').srcObject = localStream;
-        } catch(e) {
-            console.error("Hardware Access Denied:", e);
-            alert("Please allow Camera and Microphone access.");
-        }
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('local-vid').srcObject = localStream;
     }
 
-    function prepareP2P(workerId) { 
-        targetPeerId = "divine_master_" + workerId; 
-        alert("Targeting: " + targetPeerId); 
-    }
-
-    function executeP2P() {
-        if(!targetPeerId) return alert("Select a peer first!");
-        const call = peer.call(targetPeerId, localStream);
-        call.on('stream', (stream) => {
-            document.getElementById('p2p-remote-video').srcObject = stream;
-        });
-        activeCalls[targetPeerId] = call;
-    }
-
-    function leaveAllCalls() {
-        Object.values(activeCalls).forEach(c => c.close());
-        activeCalls = {};
-    }
-
-    window.onload = initSystem;
+    function toggleAudio() { localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0].enabled; }
+    function toggleVideo() { localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0].enabled; }
+    function adjustVolume(val) { document.getElementById('remote-vid').volume = val; }
+    
+    window.onload = () => { initSystem(); loadMessages(); };
 </script>
 {% endblock %}
-<a href="{% url 'dashboard:video_call' room_name='meeting-worker-'|add:worker_id|stringformat:'s' %}" target="_blank" class="btn btn-success rounded-pill shadow-sm">
-    <i class="fas fa-video"></i> Start Live Video Meeting
-</a>
