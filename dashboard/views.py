@@ -276,3 +276,7 @@ def leaderboard_view(request): return render(request, 'dashboard/leaderboard.htm
 def check_efficiency_api(request):
     metrics, _ = PerformanceMetric.objects.get_or_create(worker=request.user)
     return JsonResponse({'score': metrics.score})
+@login_required
+def general_hub_view(request):
+    contacts = User.objects.exclude(id=request.user.id)
+    return render(request, 'dashboard/general_hub.html', {'contacts': contacts})

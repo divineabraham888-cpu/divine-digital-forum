@@ -46,4 +46,5 @@ urlpatterns = [
     # --- NEW P2P AND MODERN COMMAND CENTER ---
     path('p2p/', views.p2p_view, name='p2p_hub'),
     path('messages/', views.message_center_view, name='message_center'),
+    path('general-hub/', views.general_hub_view, name='general_hub'),  # <-- ADD THIS RIGHT HERE
 ]
