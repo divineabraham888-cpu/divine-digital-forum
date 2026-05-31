@@ -1,140 +1,220 @@
 {% extends 'dashboard/template.html' %}
 {% block content %}
 
-<!-- Load PeerJS for Peer-to-Peer Video/Voice Connections -->
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-<div class="container-fluid mt-4">
-    <div class="row">
+<div class="container-fluid mt-3" id="main-container">
+    <div class="row h-100" id="standard-view">
         
-        <!-- CONTACTS SECTION (Responsive: bottom on mobile, left on desktop) -->
-        <div class="col-12 col-md-3 order-2 order-md-1 mt-4 mt-md-0">
-            <div class="card glass-panel shadow-sm border-0">
-                <div class="card-header bg-transparent border-bottom border-warning">
+        <!-- STANDARD CONTACTS SECTION (Hides when in call) -->
+        <div class="col-12 col-md-3" id="contacts-panel">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-bottom pt-4 pb-3">
                     <h5 class="mb-0 fw-bold">Contacts</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
                         {% for contact in contacts %}
-                            <li class="list-group-item bg-transparent px-0">
-                                <a href="{% url 'dashboard:message_center_with_worker' contact.id %}" class="text-decoration-none text-dark fw-bold d-block p-2 rounded hover-effect">
-                                    👤 {{ contact.username }}
+                            <li class="list-group-item bg-transparent border-0 px-3 py-2">
+                                <a href="{% url 'dashboard:message_center_with_worker' contact.id %}" class="text-decoration-none text-dark fw-bold d-block p-3 rounded-3 hover-bg-light transition-all">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            {{ contact.username|make_list|first|upper }}
+                                        </div>
+                                        {{ contact.username }}
+                                    </div>
                                 </a>
                             </li>
                         {% empty %}
-                            <li class="list-group-item bg-transparent text-muted small">No active contacts found.</li>
+                            <li class="list-group-item bg-transparent text-muted text-center py-4">No active contacts.</li>
                         {% endfor %}
                     </ul>
                 </div>
             </div>
         </div>
 
-        <!-- CHAT & VIDEO WORKSPACE SECTION -->
-        <div class="col-12 col-md-9 order-1 order-md-2">
-            
-            <!-- TEXT CHAT PANEL -->
-            <div id="textChatPanel" class="card shadow-sm border-0">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
-                    <h5 class="mb-0 fw-bold text-secondary">
-                        Chat with <span class="text-dark">{{ target_worker.username|default:"System Channel" }}</span>
-                    </h5>
-                    
-                    <!-- Fixed: This button now ALWAYS displays so users can open the workspace anytime -->
-                    <button onclick="toggleLiveRoom()" class="btn btn-sm btn-success fw-bold shadow-sm px-3 py-2">
-                        🎥 Open Live Workspace
-                    </button>
+        <!-- STANDARD CHAT LAUNCHER -->
+        <div class="col-12 col-md-9" id="chat-launcher-panel">
+            <div class="card shadow-sm border-0 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center p-5 text-center bg-light">
+                <div class="bg-white p-4 rounded-circle shadow-sm mb-4">
+                    <h1 class="display-4 mb-0">🎥</h1>
                 </div>
-                <div class="card-body chat-history bg-light" style="height: 400px; overflow-y: auto;">
-                    <!-- Chat messages load dynamically here -->
-                </div>
-                <div class="card-footer bg-white border-top">
-                    <textarea class="form-control border-0 bg-light" rows="2" placeholder="Type a message..."></textarea>
-                    <div class="d-flex justify-content-end mt-2">
-                        <button class="btn btn-primary fw-bold px-4 shadow-sm">Send Message</button>
-                    </div>
-                </div>
+                <h3 class="fw-bold">Ready to connect with {{ target_worker.username|default:"your team" }}?</h3>
+                <p class="text-muted mb-4">Launch the workspace for high-quality video, synced whiteboarding, and real-time chat.</p>
+                <button onclick="enterMeetMode()" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow">
+                    Launch Meet Workspace
+                </button>
             </div>
-
-            <!-- LIVE ROOM PANEL (Hidden by default, reveals on button click) -->
-            <div id="liveRoomPanel" class="card border-success shadow-lg" style="display: none;">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center border-0">
-                    <h5 class="mb-0 fw-bold">🔴 Live Collaborative Workspace</h5>
-                    <button onclick="toggleLiveRoom()" class="btn btn-sm btn-light text-success fw-bold px-3">
-                        ❌ Close Workspace
-                    </button>
-                </div>
-                
-                <div class="card-body bg-dark p-4">
-                    <!-- CALL CONFIGURATION & CONTROLS -->
-                    <div class="row mb-4">
-                        <div class="col-12 text-center">
-                            <button id="call-btn" onclick="startCall()" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm me-2">
-                                📞 Call {{ target_worker.username|default:"Partner" }}
-                            </button>
-                            <button id="end-btn" onclick="endCall()" class="btn btn-danger btn-lg px-5 fw-bold shadow-sm" style="display:none;">
-                                🔴 End Call
-                            </button>
-                            <div id="call-status" class="mt-3 text-warning fw-bold small tracking-wide text-uppercase">
-                                Initializing secure connection grid...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- P2P VIDEO STREAMS -->
-                    <div class="row g-3">
-                        <!-- Local Video feed (User) -->
-                        <div class="col-12 col-md-6 position-relative">
-                            <video id="local-video" autoplay muted playsinline class="w-100 rounded border border-secondary shadow" style="background: #000; object-fit: cover; height: 280px;"></video>
-                            <span class="position-absolute top-0 start-0 bg-success text-white px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">You</span>
-                        </div>
-                        
-                        <!-- Remote Video feed (Target Contact) -->
-                        <div class="col-12 col-md-6 position-relative">
-                            <video id="remote-video" autoplay playsinline class="w-100 rounded border border-secondary shadow" style="background: #111; object-fit: cover; height: 280px;"></video>
-                            <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
-                                {{ target_worker.username|default:"Partner" }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Whiteboard Container Area -->
-                    <div class="mt-4 border border-secondary rounded p-4 text-center text-white-50 bg-secondary bg-opacity-10 fw-bold">
-                        🎨 Interactive Whiteboard Canvas Area (Engine Ready)
-                    </div>
-                </div>
-            </div>
-
         </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- GOOGLE MEET STYLE WORKSPACE (Hidden initially) -->
+    <!-- ========================================== -->
+    <div class="row" id="meet-workspace" style="display: none; height: 85vh;">
+        
+        <!-- MAIN STAGE (Video & Whiteboard) -->
+        <div class="col-12 col-lg-9 h-100 d-flex flex-column position-relative bg-dark rounded-4 overflow-hidden shadow-lg mb-3 mb-lg-0">
+            
+            <!-- Connection Status -->
+            <div class="position-absolute top-0 start-0 w-100 p-3 z-3 d-flex justify-content-between align-items-center pointer-events-none">
+                <span id="call-status" class="badge bg-dark bg-opacity-75 text-white border border-secondary px-3 py-2 rounded-pill fw-normal">
+                    System Online. Waiting to call...
+                </span>
+            </div>
+
+            <!-- Video Grid -->
+            <div id="video-grid" class="flex-grow-1 d-flex flex-wrap p-2 gap-2 align-items-center justify-content-center" style="transition: all 0.3s ease;">
+                <div class="position-relative w-100 h-100 video-container">
+                    <video id="remote-video" autoplay playsinline class="w-100 h-100 object-fit-cover rounded-3 bg-black"></video>
+                    <span class="position-absolute bottom-0 start-0 m-3 text-white fw-bold text-shadow">{{ target_worker.username|default:"Partner" }}</span>
+                </div>
+                <!-- Picture in Picture (Self) -->
+                <div class="position-absolute bottom-0 end-0 m-4 shadow-lg rounded-3 overflow-hidden border border-secondary" style="width: 200px; height: 150px; z-index: 5;">
+                    <video id="local-video" autoplay muted playsinline class="w-100 h-100 object-fit-cover bg-black"></video>
+                    <span class="position-absolute bottom-0 start-0 m-2 text-white small">You</span>
+                </div>
+            </div>
+
+            <!-- Interactive Whiteboard (Overlays video grid when active) -->
+            <div id="whiteboard-container" class="flex-grow-1 bg-white position-absolute top-0 start-0 w-100 h-100 z-2" style="display: none;">
+                <div class="position-absolute top-0 w-100 p-2 bg-light border-bottom d-flex justify-content-between align-items-center z-3">
+                    <span class="fw-bold text-primary ms-2"><i class="fas fa-paint-brush"></i> Collaborative Canvas</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearCanvas()">Clear Board</button>
+                </div>
+                <canvas id="whiteboard" class="w-100 h-100 cursor-crosshair"></canvas>
+            </div>
+
+            <!-- FLOATING CONTROL BAR -->
+            <div class="control-bar position-absolute bottom-0 start-50 translate-middle-x mb-4 z-3 d-flex gap-3 bg-dark bg-opacity-75 p-3 rounded-pill shadow-lg border border-secondary backdrop-blur">
+                
+                <!-- Call Action -->
+                <button id="call-btn" onclick="startCall()" class="btn btn-success rounded-circle control-btn shadow-sm" title="Call">
+                    📞
+                </button>
+                <button id="end-btn" onclick="endCall()" class="btn btn-danger rounded-circle control-btn shadow-sm" style="display: none;" title="End Call">
+                    📞
+                </button>
+
+                <div class="border-start border-secondary mx-1"></div>
+
+                <!-- Media Controls -->
+                <button id="mute-btn" onclick="toggleMute()" class="btn btn-secondary rounded-circle control-btn" title="Mute/Unmute">
+                    🎤
+                </button>
+                <button id="video-btn" onclick="toggleVideo()" class="btn btn-secondary rounded-circle control-btn" title="Turn Off Camera">
+                    📹
+                </button>
+                <button id="board-btn" onclick="toggleWhiteboard()" class="btn btn-primary rounded-circle control-btn" title="Toggle Whiteboard">
+                    🎨
+                </button>
+                
+                <div class="border-start border-secondary mx-1"></div>
+
+                <button onclick="exitMeetMode()" class="btn btn-outline-light rounded-circle control-btn" title="Leave Workspace">
+                    ❌
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: TEXT CHAT -->
+        <div class="col-12 col-lg-3 h-100">
+            <div class="card h-100 border-0 shadow-sm rounded-4 d-flex flex-column">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">In-Call Messages</h6>
+                </div>
+                <!-- Chat History Area -->
+                <div class="card-body bg-light overflow-auto flex-grow-1 p-3" id="chat-history">
+                    <div class="text-center text-muted small mt-4">
+                        Messages sent here are synced in real-time.
+                    </div>
+                    <!-- Your Django chat messages loop should go here -->
+                </div>
+                <!-- Chat Input -->
+                <div class="card-footer bg-white border-top p-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-0 bg-light rounded-pill px-4" placeholder="Send a message...">
+                        <button class="btn btn-primary rounded-pill ms-2 px-3 fw-bold">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
+<style>
+    .hover-bg-light:hover { background-color: #f8f9fa !important; }
+    .transition-all { transition: all 0.2s ease; }
+    .object-fit-cover { object-fit: cover; }
+    .text-shadow { text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+    .pointer-events-none { pointer-events: none; }
+    .backdrop-blur { backdrop-filter: blur(10px); }
+    .control-btn { 
+        width: 50px; 
+        height: 50px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: transform 0.2s;
+    }
+    .control-btn:hover { transform: scale(1.1); }
+    .cursor-crosshair { cursor: crosshair; }
+</style>
+
 <script>
-    // Fail-safe initialization context injection
+    // --- PEERJS & MEDIA SETUP ---
     const currentUserId = "{{ request.user.id }}";
     const targetUserId = "{{ target_worker.id|default:'0' }}";
-    
-    // Unique namespaces to clear global peer signaling overlaps
     const myPeerId = "divine_network_user_" + currentUserId;
     const targetPeerId = "divine_network_user_" + targetUserId;
     
     let peer = null;
     let localStream = null;
     let currentCall = null;
+    let dataConnection = null;
 
-    // 1. Establish background server link
+    // --- WHITEBOARD SETUP ---
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let currentX = 0;
+    let currentY = 0;
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight - 40; // Minus header
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- UI VIEW TOGGLING ---
+    function enterMeetMode() {
+        document.getElementById('standard-view').style.display = 'none';
+        document.getElementById('meet-workspace').style.display = 'flex';
+        resizeCanvas();
+        initLiveRoom();
+    }
+
+    function exitMeetMode() {
+        endCall();
+        document.getElementById('meet-workspace').style.display = 'none';
+        document.getElementById('standard-view').style.display = 'flex';
+    }
+
+    // --- SYSTEM INITIALIZATION ---
     function initLiveRoom() {
         if (!peer) {
-            document.getElementById('call-status').innerText = "Establishing link to signaling cluster...";
-            
+            document.getElementById('call-status').innerText = "Establishing link...";
             peer = new Peer(myPeerId);
             
             peer.on('open', (id) => {
-                document.getElementById('call-status').innerText = "✅ System Online. Ready for transmission.";
+                document.getElementById('call-status').innerText = "Ready to connect.";
             });
 
-            // Global listener for inbound target calls
+            // Handle incoming calls
             peer.on('call', (call) => {
-                if (confirm("Inbound live call request received. Answer?")) {
+                if (confirm("Incoming video call from partner. Answer?")) {
                     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
                         localStream = stream;
                         document.getElementById('local-video').srcObject = localStream;
@@ -144,99 +224,132 @@
                         
                         call.on('stream', (remoteStream) => {
                             document.getElementById('remote-video').srcObject = remoteStream;
-                            document.getElementById('call-status').innerText = "🟢 Link Active (Connected)";
+                            document.getElementById('call-status').innerText = "🟢 Connected";
+                            updateCallButtons(true);
                         });
-                        
-                        document.getElementById('call-btn').style.display = 'none';
-                        document.getElementById('end-btn').style.display = 'inline-block';
-                    }).catch(err => {
-                        alert("Error: Media capture hardware access denied.");
-                        document.getElementById('call-status').innerText = "Hardware access block.";
-                    });
+                    }).catch(err => alert("Camera access required."));
                 }
             });
-            
-            peer.on('error', (err) => {
-                console.error("Peer Error:", err);
-                if(err.type === 'peer-not-found') {
-                    document.getElementById('call-status').innerText = "❌ Connection failed: Target user is offline.";
-                } else {
-                    document.getElementById('call-status').innerText = "Connection status: " + err.type;
-                }
+
+            // Handle incoming Whiteboard data connection
+            peer.on('connection', (conn) => {
+                dataConnection = conn;
+                setupDataConnection();
             });
         }
     }
 
-    // 2. Initiate outbound call sequence
+    // --- CALL LOGIC ---
     function startCall() {
-        if (!targetUserId || targetUserId === '0') {
-            document.getElementById('call-status').innerText = "⚠ Action Aborted: Please select an active contact first.";
-            alert("You must click a contact from your list before initiating a live call connection.");
-            return;
-        }
+        if (targetUserId === '0') return alert("Select a contact first.");
         
-        document.getElementById('call-status').innerText = "Pinging target node...";
+        document.getElementById('call-status').innerText = "Calling...";
         
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
             localStream = stream;
             document.getElementById('local-video').srcObject = localStream;
             
-            const call = peer.call(targetPeerId, stream);
-            currentCall = call;
+            // Start Video Call
+            currentCall = peer.call(targetPeerId, stream);
+            // Start Data Channel for Whiteboard
+            dataConnection = peer.connect(targetPeerId);
+            setupDataConnection();
             
-            call.on('stream', (remoteStream) => {
+            currentCall.on('stream', (remoteStream) => {
                 document.getElementById('remote-video').srcObject = remoteStream;
-                document.getElementById('call-status').innerText = "🟢 Link Active (Connected)";
+                document.getElementById('call-status').innerText = "🟢 Connected";
+                updateCallButtons(true);
             });
             
-            document.getElementById('call-btn').style.display = 'none';
-            document.getElementById('end-btn').style.display = 'inline-block';
-            
-        }).catch(err => {
-            alert("Error: Please enable camera and microphone access in your browser settings.");
-            document.getElementById('call-status').innerText = "Hardware failure.";
-        });
+        }).catch(err => alert("Camera/Mic blocked."));
     }
 
-    // 3. Clear resources and terminate active channels
     function endCall() {
-        if (currentCall) {
-            currentCall.close();
-        }
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-        }
+        if (currentCall) currentCall.close();
+        if (dataConnection) dataConnection.close();
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
         
         document.getElementById('local-video').srcObject = null;
         document.getElementById('remote-video').srcObject = null;
-        
-        document.getElementById('call-btn').style.display = 'inline-block';
-        document.getElementById('end-btn').style.display = 'none';
-        document.getElementById('call-status').innerText = "Session closed safely.";
+        document.getElementById('call-status').innerText = "Call ended.";
+        updateCallButtons(false);
     }
 
-    // 4. Interface state toggles
-    function toggleLiveRoom() {
-        const textPanel = document.getElementById('textChatPanel');
-        const livePanel = document.getElementById('liveRoomPanel');
-        
-        if (livePanel.style.display === 'none') {
-            textPanel.style.display = 'none';
-            livePanel.style.display = 'block';
-            initLiveRoom(); 
+    function updateCallButtons(isActive) {
+        document.getElementById('call-btn').style.display = isActive ? 'none' : 'flex';
+        document.getElementById('end-btn').style.display = isActive ? 'flex' : 'none';
+    }
+
+    // --- MEDIA CONTROLS ---
+    function toggleMute() {
+        if (!localStream) return;
+        const audioTrack = localStream.getAudioTracks()[0];
+        audioTrack.enabled = !audioTrack.enabled;
+        document.getElementById('mute-btn').classList.toggle('btn-danger', !audioTrack.enabled);
+        document.getElementById('mute-btn').classList.toggle('btn-secondary', audioTrack.enabled);
+    }
+
+    function toggleVideo() {
+        if (!localStream) return;
+        const videoTrack = localStream.getVideoTracks()[0];
+        videoTrack.enabled = !videoTrack.enabled;
+        document.getElementById('video-btn').classList.toggle('btn-danger', !videoTrack.enabled);
+        document.getElementById('video-btn').classList.toggle('btn-secondary', videoTrack.enabled);
+    }
+
+    // --- WHITEBOARD LOGIC & SYNC ---
+    function toggleWhiteboard() {
+        const board = document.getElementById('whiteboard-container');
+        const btn = document.getElementById('board-btn');
+        if (board.style.display === 'none') {
+            board.style.display = 'block';
+            btn.classList.replace('btn-primary', 'btn-warning');
+            resizeCanvas();
         } else {
-            livePanel.style.display = 'none';
-            textPanel.style.display = 'block';
-            endCall(); 
+            board.style.display = 'none';
+            btn.classList.replace('btn-warning', 'btn-primary');
         }
     }
-</script>
 
-<style>
-    .hover-effect:hover {
-        background-color: rgba(255, 193, 7, 0.15) !important;
-        transition: background 0.2s ease-in-out;
+    function setupDataConnection() {
+        dataConnection.on('data', (data) => {
+            if (data.type === 'draw') {
+                drawLine(data.x0, data.y0, data.x1, data.y1, false);
+            } else if (data.type === 'clear') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        });
     }
-</style>
+
+    // Drawing Listeners
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; currentX = e.offsetX; currentY = e.offsetY; });
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseout', () => isDrawing = false);
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        drawLine(currentX, currentY, e.offsetX, e.offsetY, true);
+        currentX = e.offsetX;
+        currentY = e.offsetY;
+    });
+
+    function drawLine(x0, y0, x1, y1, emit) {
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.closePath();
+
+        if (!emit || !dataConnection) return;
+        dataConnection.send({ type: 'draw', x0, y0, x1, y1 });
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (dataConnection) dataConnection.send({ type: 'clear' });
+    }
+</script>
 
 {% endblock %}
