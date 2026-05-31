@@ -5,13 +5,13 @@
     
     <header class="p-4 bg-gray-800 flex justify-between items-center border-b border-gray-700">
         <h1 class="text-xl font-bold">Room: {{ room_name }}</h1>
-        <button onclick="hangupCall()" class="bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 font-semibold">End Call</button>
+        <button onclick="hangupCall()" class="bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 font-semibold text-sm">End Call</button>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
         
         <div class="flex-1 relative" id="video-container">
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 p-3 rounded-full flex gap-4 backdrop-blur-sm border border-gray-600 z-50">
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 p-3 rounded-full flex gap-4 backdrop-blur-sm border border-gray-600 z-50 shadow-2xl">
                 <button onclick="api.executeCommand('toggleAudio')" class="p-3 bg-gray-700 rounded-full hover:bg-gray-600 transition">🎙️</button>
                 <button onclick="api.executeCommand('toggleVideo')" class="p-3 bg-gray-700 rounded-full hover:bg-gray-600 transition">📹</button>
                 <button onclick="api.executeCommand('toggleShareScreen')" class="p-3 bg-blue-600 rounded-full hover:bg-blue-500 transition">🖥️</button>
@@ -20,12 +20,24 @@
 
         <div class="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
             <div class="flex p-2 gap-2 border-b border-gray-700">
-                <button onclick="switchTab('chat')" class="flex-1 py-1 bg-gray-700 rounded text-sm font-medium">Chat</button>
-                <button onclick="switchTab('board')" class="flex-1 py-1 hover:bg-gray-700 rounded text-sm font-medium">Board</button>
+                <button onclick="switchTab('hq')" class="flex-1 py-1 bg-gray-700 rounded text-xs font-bold text-white hover:bg-gray-600">General HQ</button>
+                <button onclick="switchTab('p2p')" class="flex-1 py-1 bg-gray-700 rounded text-xs font-bold text-white hover:bg-gray-600">P2P Hub</button>
+                <button onclick="switchTab('board')" class="flex-1 py-1 bg-gray-700 rounded text-xs font-bold text-white hover:bg-gray-600">Board</button>
             </div>
             
             <div id="side-content" class="flex-1 p-4 overflow-y-auto">
-                <p class="text-gray-400 text-center mt-10">Select a tool to begin.</p>
+                <div id="hq-content" class="tab-content">
+                    <h2 class="text-lg font-semibold text-white mb-4">General HQ</h2>
+                    <p class="text-sm text-gray-400">Welcome to the central command center.</p>
+                </div>
+                <div id="p2p-content" class="tab-content hidden">
+                    <h2 class="text-lg font-semibold text-white mb-4">P2P Hub</h2>
+                    <p class="text-sm text-gray-400">Peer-to-peer connection is ready.</p>
+                </div>
+                <div id="board-content" class="tab-content hidden">
+                    <h2 class="text-lg font-semibold text-white mb-4">Digital Board</h2>
+                    <iframe src="https://excalidraw.com/" class="w-full h-96 border-0 rounded-lg"></iframe>
+                </div>
             </div>
         </div>
     </div>
@@ -41,7 +53,6 @@
         height: "100%",
         parentNode: document.querySelector('#video-container'),
         userInfo: { displayName: "{{ user_name }}" },
-        // Empty toolbar so our custom buttons are the only ones visible
         interfaceConfigOverwrite: { TOOLBAR_BUTTONS: [] } 
     };
 
@@ -49,20 +60,16 @@
         api = new JitsiMeetExternalAPI(domain, options);
     };
 
-    // Custom Function to End Call
     function hangupCall() {
-        api.dispose();
+        if(api) api.dispose();
         window.location.href = "{% url 'dashboard:admin_dashboard' %}";
     }
 
-    // Tab Switching Logic
     function switchTab(tab) {
-        const container = document.getElementById('side-content');
-        if (tab === 'chat') {
-            container.innerHTML = '<p class="text-gray-400">Chat interface loading...</p>';
-        } else {
-            container.innerHTML = '<p class="text-gray-400">Whiteboard interface loading...</p>';
-        }
+        // Hide all
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        // Show selected
+        document.getElementById(tab + '-content').classList.remove('hidden');
     }
 </script>
 {% endblock %}
