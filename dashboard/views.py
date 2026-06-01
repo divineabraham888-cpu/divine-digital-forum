@@ -171,11 +171,17 @@ def submit_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)
     
     if request.method == 'POST':
+        # Match the exact fields defined in your WorkSubmission model
         WorkSubmission.objects.create(
-            worker=request.user, 
-            task=task,       
-            content=request.POST.get('content', '')
+            worker=request.user,
+            title=task.title,                           # Satisfies the required title field
+            content_or_link=request.POST.get('content', '') # Maps your form content to content_or_link
         )
+        
+        # Optional: Update the task status so it clears from the worker's pending list
+        task.status = 'Submitted'
+        task.save()
+        
         messages.success(request, "Task submitted successfully!")
         return redirect('dashboard:worker_dashboard')
         
