@@ -154,3 +154,16 @@
 </script>
 </body>
 </html>
+{% for task in tasks %}
+    <div class="task-card">
+        <h4>{{ task.title }}</h4>
+        <p>{{ task.description }}</p>
+        <p>Status: <span class="badge">{{ task.status }}</span></p>
+        
+        <a href="{% url 'dashboard:submit_task' task.id %}" class="btn btn-primary">
+            Respond to Task
+        </a>
+    </div>
+{% empty %}
+    <p>No pending tasks assigned to you.</p>
+{% endfor %}

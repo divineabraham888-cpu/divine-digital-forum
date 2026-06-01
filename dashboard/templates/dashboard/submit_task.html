@@ -15,49 +15,49 @@
     <div class="max-w-4xl mx-auto">
         <div class="flex justify-between items-center mb-6 border-b-2 border-amber-500 pb-4">
             <h1 class="text-3xl font-bold text-amber-400"><i class="fa-solid fa-file-export mr-2"></i> Submit Operational Data</h1>
-            <a href="{% url 'dashboard:worker_dashboard' %}" class="bg-red-600 px-4 py-2 rounded font-bold text-white"><i class="fa-solid fa-arrow-left"></i> Abort</a>
+            <a href="{% url 'dashboard:worker_dashboard' %}" class="bg-red-600 px-4 py-2 rounded font-bold text-white hover:bg-red-700 transition">
+                <i class="fa-solid fa-arrow-left"></i> Abort
+            </a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Task Briefing -->
             <div class="bg-panel rounded-xl p-6 col-span-1 border-l-4 border-l-amber-500">
                 <h3 class="text-xl font-bold text-amber-400 mb-2">Mission Briefing</h3>
                 <h4 class="font-bold text-white mb-4">{{ task.title }}</h4>
                 <p class="text-teal-200 text-sm leading-relaxed">{{ task.description }}</p>
             </div>
 
-            <!-- Submission Form -->
             <div class="bg-panel rounded-xl p-6 col-span-2">
                 <form method="POST" action="{% url 'dashboard:submit_task' task.id %}" class="space-y-4">
                     {% csrf_token %}
                     <div>
                         <label class="block text-amber-400 font-bold mb-2">Data / Report Entry</label>
-                        <textarea name="content" rows="8" required placeholder="Enter your task results, links, or reports here..." class="w-full bg-teal-950 border border-teal-700 rounded p-4 text-white focus:border-amber-400 focus:outline-none shadow-inner"></textarea>
+                        <textarea 
+                            name="content" 
+                            rows="8" 
+                            required 
+                            placeholder="Enter your task results, links, or reports here..." 
+                            class="w-full bg-teal-950 border border-teal-700 rounded p-4 text-white focus:border-amber-400 focus:outline-none shadow-inner"
+                        ></textarea>
                     </div>
-                    <button type="submit" class="gold-btn w-full py-4 rounded text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:brightness-110 transition">
+                    <button type="submit" id="submit-btn" class="gold-btn w-full py-4 rounded text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:brightness-110 transition">
                         <i class="fa-solid fa-upload mr-2"></i> Transmit Securely to Command
                     </button>
                 </form>
             </div>
         </div>
     </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function() {
+            const btn = document.getElementById('submit-btn');
+            
+            // 50ms delay allows the browser to package and send the data before locking the button
+            setTimeout(function() {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Transmitting...';
+            }, 50);
+        });
+    </script>
 </body>
 </html>
-<script>
-    document.querySelector('form').addEventListener('submit', function() {
-        const btn = document.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Transmitting...';
-    });
-</script>
-<script>
-    document.querySelector('form').addEventListener('submit', function() {
-        const btn = document.querySelector('button[type="submit"]');
-        
-        // Add a tiny delay so the browser can fire off the data BEFORE disabling
-        setTimeout(function() {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Transmitting...';
-        }, 50);
-    });
-</script>
