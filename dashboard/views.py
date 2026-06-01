@@ -58,7 +58,6 @@ def auth(request):
 # ==========================================
 # 2. DASHBOARD CENTRALS
 # ==========================================
-
 @login_required
 def admin_dashboard(request):
     if not request.user.is_superuser: 
@@ -79,12 +78,15 @@ def admin_dashboard(request):
             messages.success(request, "Broadcast removed.")
             return redirect('dashboard:admin_dashboard')
 
+    # ADDED: 'submissions' query included in the context dictionary below
     context = {
         'workers': User.objects.exclude(is_superuser=True).prefetch_related('worker_profile'),
         'broadcasts': SystemBroadcast.objects.all().order_by('-created_at'),
-        'worker_activities': WorkerActivity.objects.all().order_by('-last_seen')[:10] 
+        'worker_activities': WorkerActivity.objects.all().order_by('-last_seen')[:10],
+        'submissions': WorkSubmission.objects.all().order_by('-submitted_at'), 
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
+    
 
 @login_required
 def worker_dashboard(request):
