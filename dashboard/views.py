@@ -297,3 +297,34 @@ def message_center_with_worker(request, worker_id):
         'contacts': User.objects.exclude(id=request.user.id),
         'active_worker': target_worker
     })
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import Suggestion
+
+@login_required
+def suggestion_box(request):
+    # Handle incoming suggestion submissions
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        
+        if title and content:
+            Suggestion.objects.create(
+                user=request.user,
+                title=title,
+                content=content
+            )
+            messages.success(request, "Suggestion transmitted to Central Command.")
+            return redirect('dashboard:suggestion_box')
+
+    # Determine what data to show based on clearance level
+    if request.user.is_superuser:
+        # Admins see everything
+        suggestions = Suggestion.objects.all().order_by('-created_at')
+    else:
+        # Workers only see their own submitted logs
+        suggestions = Suggestion.objects.filter(user=request.user).order_by('-created_at')
+        
+    return render(request, 'dashboard/suggestion_box.html', {'suggestions': suggestions})
