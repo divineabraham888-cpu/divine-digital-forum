@@ -1,11 +1,18 @@
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-m=o_mbc0fsd6pqzu4d6f%psft38^y-r7--h##m2=_razd6#7&u'
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://*.loca.lt']
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -31,12 +38,28 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'core.urls'
 WSGI_APPLICATION = 'core.wsgi.application'
 
+# ==========================================
+# DATABASE CONFIGURATION
+# ==========================================
+
+# Keep SQLite for local testing on your computer
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# If in production (Render), override the local database with PostgreSQL
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+# ==========================================
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -62,20 +85,14 @@ TEMPLATES = [
 ]
 
 # --- STATIC FILES CONFIGURATION ---
-# This is the "Base URL" for static files (e.g., /static/image.jpg)
 STATIC_URL = '/static/'
-
-# This tells Django where to find your static folder on your computer
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-
-# This is where Django puts static files during deployment (for later)
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 # ----------------------------------
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# In settings.py
-ASGI_APPLICATION = 'your_project_name.asgi.application'
+
+# Fixed to match your specific project WSGI name
+ASGI_APPLICATION = 'core.asgi.application'
