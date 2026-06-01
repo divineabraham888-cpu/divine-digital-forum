@@ -18,6 +18,7 @@
         .terminal-text { font-family: 'JetBrains Mono', monospace; }
         .hover-lift { transition: transform 0.3s ease; }
         .hover-lift:hover { transform: translateY(-5px); }
+        .gold-btn { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728); color: #022c22; font-weight: bold; }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -32,8 +33,8 @@
         
         <nav class="space-y-3">
             <a href="{% url 'dashboard:worker_dashboard' %}" class="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/80 border border-gold/30 text-gold"><i class="fas fa-microchip"></i> Dashboard</a>
-            <a href="{% url 'dashboard:edit_worker_profile' request.user.id %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-900/40 transition"><i class="fas fa-user-shield"></i> Profile</a>
-            <a href="{% url 'dashboard:suggestion_box' %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-900/40 transition"><i class="fas fa-lightbulb"></i> Suggestions</a>
+            <a href="{% url 'dashboard:edit_worker_profile' request.user.id %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-900/40 transition text-slate-300"><i class="fas fa-user-shield"></i> Profile</a>
+            <a href="{% url 'dashboard:suggestion_box' %}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-900/40 transition text-slate-300"><i class="fas fa-lightbulb"></i> Suggestions</a>
         </nav>
     </aside>
 
@@ -55,7 +56,7 @@
                 <h3 class="text-gold font-bold mb-3 flex items-center gap-2"><i class="fas fa-search"></i> Search Center</h3>
                 <form action="#" class="flex gap-2">
                     <input type="text" placeholder="Query system, logs, or archives..." class="w-full bg-emerald-950/50 border border-emerald-800 rounded-xl p-3 text-white focus:ring-2 focus:ring-gold outline-none">
-                    <button class="bg-gold text-emerald-950 px-6 rounded-xl font-bold hover:bg-amber-400 transition">Go</button>
+                    <button type="submit" class="bg-gold text-emerald-950 px-6 rounded-xl font-bold hover:bg-amber-400 transition">Go</button>
                 </form>
             </div>
             <div class="glass-panel p-6 rounded-3xl border-gold border flex items-center justify-between hover-lift cursor-pointer">
@@ -75,7 +76,7 @@
             </div>
             <div class="glass-panel p-6 rounded-3xl hover-lift">
                 <p class="text-gold text-xs font-bold uppercase tracking-widest mb-2">AI Status</p>
-                <h2 id="ai-status" class="text-3xl font-bold">{{ ai_health }}</h2>
+                <h2 id="ai-status" class="text-3xl font-bold uppercase">{{ ai_health }}</h2>
             </div>
             <div class="glass-panel p-6 rounded-3xl hover-lift border-gold border-t-2">
                 <p class="text-gold text-xs font-bold uppercase tracking-widest mb-2">Daily Focus</p>
@@ -101,25 +102,75 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {% for title, list in data_map %}
+            
+            <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-lg mb-4 text-gold flex items-center gap-2"><i class="fas fa-tasks"></i> Pending Missions</h3>
+                    <ul class="space-y-3">
+                        {% for task in tasks %}
+                        <li class="p-3 bg-emerald-900/30 rounded-xl text-sm border border-emerald-800/50 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-100">{{ task.title }}</span>
+                                <span class="text-[10px] bg-amber-500/10 border border-amber-500/30 text-gold px-2 py-0.5 rounded uppercase font-mono">{{ task.status }}</span>
+                            </div>
+                            <p class="text-xs text-emerald-300 leading-relaxed line-clamp-2">{{ task.description }}</p>
+                            <a href="{% url 'dashboard:submit_task' task.id %}" class="block text-center text-xs font-bold gold-btn py-2 rounded-lg mt-2 transition hover:brightness-110 shadow-md shadow-gold/10">
+                                <i class="fa-solid fa-reply mr-1"></i> Respond to Task
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li class="p-3 bg-emerald-900/10 rounded-xl text-xs text-emerald-400 italic text-center border border-emerald-900/40">
+                            No pending operations assigned.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
             <div class="glass-panel p-6 rounded-3xl">
-                <h3 class="font-bold text-lg mb-4 text-gold">{{ title }}</h3>
+                <h3 class="font-bold text-lg mb-4 text-gold flex items-center gap-2"><i class="fas fa-bullhorn"></i> System Broadcasts</h3>
                 <ul class="space-y-3">
-                    {% for item in list %}
-                    <li class="p-3 bg-emerald-900/30 rounded-xl text-sm border border-emerald-800/50 flex items-center gap-3">
-                        <i class="fas fa-arrow-right text-gold text-[10px]"></i> {{ item.title }}
+                    {% for broadcast in broadcasts %}
+                    <li class="p-3 bg-emerald-900/30 rounded-xl text-sm border border-emerald-800/50">
+                        <strong class="text-white block text-xs mb-1">{{ broadcast.title }}</strong>
+                        <p class="text-xs text-slate-300 leading-relaxed">{{ broadcast.message }}</p>
+                    </li>
+                    {% empty %}
+                    <li class="p-3 bg-emerald-900/10 rounded-xl text-xs text-emerald-400 italic text-center border border-emerald-900/40">
+                        No system announcements active.
                     </li>
                     {% endfor %}
                 </ul>
             </div>
-            {% endfor %}
+
+            <div class="glass-panel p-6 rounded-3xl">
+                <h3 class="font-bold text-lg mb-4 text-gold flex items-center gap-2"><i class="fas fa-history"></i> Recent Submissions</h3>
+                <ul class="space-y-3">
+                    {% for submission in submissions %}
+                    <li class="p-3 bg-emerald-900/30 rounded-xl text-sm border border-emerald-800/50 flex justify-between items-center">
+                        <div class="truncate pr-2">
+                            <span class="text-white text-xs block truncate font-mono">{{ submission.task.title }}</span>
+                            <span class="text-[10px] text-emerald-400">{{ submission.submitted_at|date:"M d, Y" }}</span>
+                        </div>
+                        <i class="fas fa-check-circle text-emerald-400 text-xs shrink-0"></i>
+                    </li>
+                    {% empty %}
+                    <li class="p-3 bg-emerald-900/10 rounded-xl text-xs text-emerald-400 italic text-center border border-emerald-900/40">
+                        No historical entries found.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
         </div>
 
         <div class="glass-panel p-8 rounded-3xl">
             <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-terminal text-gold"></i> Live Activity Console</h3>
             <div class="terminal-text bg-black/50 p-6 rounded-2xl border border-emerald-900 h-40 overflow-y-auto text-emerald-500 text-xs">
                 {% for log in activities %}
-                <p class="mb-1"><span class="text-gray-500">[{{ log.timestamp }}]</span> > {{ log.action }}</p>
+                <p class="mb-1"><span class="text-gray-500">[{{ log.timestamp|date:"H:i:s" }}]</span> > {{ log.action }}</p>
+                {% empty %}
+                <p class="text-gray-600 italic">> Console initialized... Listening for operational events...</p>
                 {% endfor %}
             </div>
         </div>
@@ -127,7 +178,7 @@
 </div>
 
 <script>
-    // Communication Hub
+    // Communication Hub Peer Session Initializer
     document.getElementById('btn-start-session').addEventListener('click', () => {
         const peer = new Peer("{{ request.user.username }}", { host: 'localhost', port: 9000, path: '/' });
         peer.on('open', (id) => {
@@ -136,34 +187,21 @@
         });
     });
 
-    // AI Monitor
+    // API Efficiency Monitor Telemetry Loop
     setInterval(() => {
-        fetch("{% url 'dashboard:check_efficiency' %}")
+        fetch("{% url 'dashboard:check_efficiency_api' %}") // Adjusted to match views.py naming structure
             .then(res => res.json())
             .then(data => {
                 const aiStatus = document.getElementById('ai-status');
                 if (data.score < 70) {
                     aiStatus.innerText = "CRITICAL";
-                    aiStatus.classList.add('text-red-500');
+                    aiStatus.className = "text-3xl font-bold text-red-500 uppercase";
                 } else {
                     aiStatus.innerText = "OPTIMAL";
-                    aiStatus.classList.remove('text-red-500');
+                    aiStatus.className = "text-3xl font-bold text-emerald-400 uppercase";
                 }
-            });
+            }).catch(err => console.log("Telemetry check skipped."));
     }, 30000);
 </script>
 </body>
 </html>
-{% for task in tasks %}
-    <div class="task-card">
-        <h4>{{ task.title }}</h4>
-        <p>{{ task.description }}</p>
-        <p>Status: <span class="badge">{{ task.status }}</span></p>
-        
-        <a href="{% url 'dashboard:submit_task' task.id %}" class="btn btn-primary">
-            Respond to Task
-        </a>
-    </div>
-{% empty %}
-    <p>No pending tasks assigned to you.</p>
-{% endfor %}
