@@ -189,7 +189,7 @@
 
     // API Efficiency Monitor Telemetry Loop
     setInterval(() => {
-        fetch("{% url 'dashboard:check_efficiency_api' %}") // Adjusted to match views.py naming structure
+        fetch("{% url 'dashboard:check_efficiency' %}")
             .then(res => res.json())
             .then(data => {
                 const aiStatus = document.getElementById('ai-status');
