@@ -169,11 +169,16 @@ def task_list(request):
 @login_required
 def submit_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)
+    
     if request.method == 'POST':
-        WorkSubmission.objects.create(worker=request.user, task=task, content=request.POST.get('content'))
-        task.status = 'Submitted'
-        task.save()
+        WorkSubmission.objects.create(
+            worker=request.user, 
+            assigned_task=task,       
+            response_text=request.POST.get('content', '')
+        )
+        messages.success(request, "Task submitted successfully!")
         return redirect('dashboard:worker_dashboard')
+        
     return render(request, 'dashboard/submit_task.html', {'task': task})
 
 # ==========================================
