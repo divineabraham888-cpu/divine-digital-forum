@@ -149,14 +149,12 @@
         document.getElementById('hub-section-' + id).classList.remove('d-none');
     }
 
-    // --- GLOBAL CHAT LOGIC (FIXED) ---
+    // --- GLOBAL CHAT LOGIC ---
     async function loadGlobalMessages() {
         try {
             const res = await fetch("{% url 'dashboard:fetch_messages' 0 %}");
             const data = await res.json();
             
-            // SECURITY CHECK: Only update the box if the server ACTUALLY sends us messages. 
-            // If it sends an empty list, we ignore it so your chat history doesn't wipe!
             if (data && data.length > 0 && data.length !== lastMessageCount) {
                 const box = document.getElementById('global-chat-box');
                 box.innerHTML = data.map(m => `
@@ -175,43 +173,38 @@
     async function sendGlobalMessage(e) {
         e.preventDefault();
         const input = document.getElementById('global-chat-input');
-        const messageText = input.value;
+        const messageText = input.value.trim();
+        if (!messageText) return; 
+
         const box = document.getElementById('global-chat-box');
 
-        // 1. INSTANT APPEND: Put the message on the screen immediately so it never disappears
+        // 1. INSTANT APPEND: Put the message on screen immediately so it never disappears
         const msgElement = document.createElement('div');
         msgElement.className = "mb-2 p-2 rounded chat-msg";
         msgElement.innerHTML = `<strong style="color: #0d3b1f;">You:</strong> <span class="ms-1" style="color: #0d3b1f;">${messageText}</span>`;
         box.appendChild(msgElement);
-        box.scrollTop = box.scrollHeight; // Scroll to see the new message
+        box.scrollTop = box.scrollHeight; 
 
-        // 2. Send it silently to the server in the background
+        // Temporarily adjust the count so the polling doesn't wipe this instant message
+        lastMessageCount++;
+
+        // 2. Clear input field instantly
+        input.value = ''; 
+
+        // 3. Send silently to server
         const fd = new FormData();
         fd.append('content', messageText);
         fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
-        input.value = ''; // Clear the input box instantly
-
         try {
             await fetch("{% url 'dashboard:send_message' 0 %}", { method: 'POST', body: fd });
+            loadGlobalMessages(); // Sync up seamlessly
         } catch(error) {
             console.error("Message failed to send to server:", error);
         }
     }
     
-    // Check the server every 3 seconds
-    setInterval(loadGlobalMessages, 3000);
-
-    async function sendGlobalMessage(e) {
-        e.preventDefault();
-        const input = document.getElementById('global-chat-input');
-        const fd = new FormData();
-        fd.append('content', input.value);
-        fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        await fetch("{% url 'dashboard:send_message' 0 %}", { method: 'POST', body: fd });
-        input.value = '';
-        loadGlobalMessages();
-    }
+    // Check the server every 3 seconds (Only called once now)
     setInterval(loadGlobalMessages, 3000);
 
     // --- VIDEO & AUDIO MEETING LOGIC ---
@@ -429,7 +422,6 @@
         ctx.strokeStyle = '#0d3b1f'; // Draw in Divine Green
     }
 
-    // Drawing Events
     canvas.addEventListener('mousedown', startPosition);
     canvas.addEventListener('mouseup', endPosition);
     canvas.addEventListener('mousemove', draw);
@@ -461,7 +453,6 @@
         if (!isJoined) return alert("You must join a meeting first to broadcast the board!");
 
         if (!isBroadcastingBoard) {
-            // Start Broadcasting Canvas
             const boardStream = canvas.captureStream(30); 
             const boardTrack = boardStream.getVideoTracks()[0];
             originalCameraTrack = hubStream.getVideoTracks()[0];
@@ -474,7 +465,6 @@
                 }
             }
             
-            // Show board on local video thumbnail
             document.getElementById('hub-local-vid').srcObject = boardStream;
             
             isBroadcastingBoard = true;
@@ -482,7 +472,6 @@
             btn.style.backgroundColor = "#ff4c4c"; 
             btn.style.color = "white";
         } else {
-            // Stop Broadcasting, revert to Camera
             for (let peerId in activeConnections) {
                 let call = activeConnections[peerId];
                 if (call.peerConnection) {
@@ -491,7 +480,6 @@
                 }
             }
             
-            // Revert local video thumbnail
             document.getElementById('hub-local-vid').srcObject = hubStream;
 
             isBroadcastingBoard = false;
